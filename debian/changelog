@@ -1,0 +1,131 @@
+openfx-io-natron (1:2.3.12-1~bionic) bionic; urgency=low
+
+  * New upstream release
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Thu, 24 May 2018 23:18:46 +0400
+
+openfx-io-natron (1:2.3.11-3~bionic) bionic; urgency=low
+
+  * Rebuild
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Fri, 11 May 2018 23:48:55 +0400
+
+openfx-io-natron (1:2.3.11-2~bionic) bionic; urgency=low
+
+  * Rebuild
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Tue, 08 May 2018 17:59:06 +0400
+
+openfx-io-natron (1:2.3.11-1~bionic) bionic; urgency=low
+
+  * New upstream release
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Tue, 08 May 2018 17:50:28 +0400
+
+openfx-io-natron (1:2.3.10-2~bionic) bionic; urgency=low
+
+  * New upstream release
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Mon, 30 Apr 2018 02:16:13 +0400
+
+openfx-io-natron (1:2.3.10-1~bionic) bionic; urgency=low
+
+  * New upstream release
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Mon, 30 Apr 2018 02:13:04 +0400
+
+openfx-io-natron (2.3.10-1~sunderland93) bionic; urgency=low
+
+  * New upstream release
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Mon, 30 Apr 2018 02:10:05 +0400
+
+openfx-io-natron (2.3.8-5~sunderland93) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Fri, 30 Mar 2018 00:26:01 +0400
+
+openfx-io-natron (2.3.8-5~artful) artful; urgency=low
+
+  * New upstream release
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Fri, 30 Mar 2018 00:04:37 +0400
+
+openfx-io-natron (2.3.8-5~bionic) bionic; urgency=low
+
+  * Fix
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Thu, 29 Mar 2018 23:57:30 +0400
+
+openfx-io-natron (2.3.8-4~bionic) bionic; urgency=low
+
+  * Rebuild for Bionic
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Thu, 29 Mar 2018 23:42:55 +0400
+
+openfx-io-natron (2.3.8-3~artful) artful; urgency=low
+
+  * Fix
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Thu, 29 Mar 2018 23:35:57 +0400
+
+openfx-io-natron (2.3.8-2~artful) artful; urgency=low
+
+  * New upstream release
+
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Thu, 29 Mar 2018 23:31:43 +0400
+
+openfx-io-natron-dmo (2.3.8-dmo1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Thu, 22 Mar 2018 08:27:45 +0100
+
+openfx-io-natron-dmo (2.3.7-dmo1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Fri, 16 Mar 2018 15:52:00 +0100
+
+openfx-io-natron-dmo (2.3.4-dmo3) unstable; urgency=medium
+
+  * Rebuild against libopenexr23
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Mon, 12 Mar 2018 08:03:11 +0100
+
+openfx-io-natron-dmo (2.3.4-dmo2) unstable; urgency=medium
+
+  * Rebuild against libilmbase23
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Sun, 07 Jan 2018 02:18:39 +0100
+
+openfx-io-natron-dmo (2.3.4-dmo1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Tue, 12 Dec 2017 01:40:35 +0100
+
+openfx-io-natron-dmo (2.3.3-dmo1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Thu, 09 Nov 2017 08:21:11 +0100
+
+openfx-io-natron-dmo (2.3.2-dmo1) unstable; urgency=medium
+
+  * New upstream bugfix release.
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Mon, 14 Aug 2017 09:10:35 +0200
+
+openfx-io-natron-dmo (2.3.1-dmo1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Thu, 27 Jul 2017 10:45:14 +0200
+
+openfx-io-natron-dmo (2.3.0-dmo1) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Christian Marillat <marillat@deb-multimedia.org>  Sat, 08 Jul 2017 10:07:09 +0200

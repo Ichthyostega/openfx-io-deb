@@ -1,0 +1,4 @@
+version=4
+
+https://github.com/MrKepzie/openfx-io/releases \
+./Natron-(.*)\.tar\.gz
