@@ -36,7 +36,7 @@ GCC_DIAG_ON(unused-parameter)
 #include <ofxsMultiPlane.h>
 #include <ofxsCoords.h>
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 #include <IlmThreadPool.h>
 #endif
 
@@ -1113,20 +1113,20 @@ WriteOIIOPlugin::beginEncodeParts(void* user_data,
         EParamTileSize tileSizeE = (EParamTileSize)tileSize_i;
         switch (tileSizeE) {
         case eParamTileSize64:
-            spec.tile_width = std::min(64, spec.full_width);
-            spec.tile_height = std::min(64, spec.full_height);
+            spec.tile_width = (std::min)(64, spec.full_width);
+            spec.tile_height = (std::min)(64, spec.full_height);
             break;
         case eParamTileSize128:
-            spec.tile_width = std::min(128, spec.full_width);
-            spec.tile_height = std::min(128, spec.full_height);
+            spec.tile_width = (std::min)(128, spec.full_width);
+            spec.tile_height = (std::min)(128, spec.full_height);
             break;
         case eParamTileSize256:
-            spec.tile_width = std::min(256, spec.full_width);
-            spec.tile_height = std::min(256, spec.full_height);
+            spec.tile_width = (std::min)(256, spec.full_width);
+            spec.tile_height = (std::min)(256, spec.full_height);
             break;
         case eParamTileSize512:
-            spec.tile_width = std::min(512, spec.full_width);
-            spec.tile_height = std::min(512, spec.full_height);
+            spec.tile_width = (std::min)(512, spec.full_width);
+            spec.tile_height = (std::min)(512, spec.full_height);
             break;
         case eParamTileSizeScanLineBased:
         default:
@@ -1383,9 +1383,13 @@ mDeclareWriterPluginFactory(WriteOIIOPluginFactory,; , false);
 void
 WriteOIIOPluginFactory::unload()
 {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
     //Kill all threads otherwise when the static global thread pool joins it threads there is a deadlock on Mingw
     IlmThread::ThreadPool::globalThreadPool().setNumThreads(0);
+
+    // Workaround to a bug: https://github.com/OpenImageIO/oiio/issues/1795
+    // see also https://github.com/LuxCoreRender/LuxCore/commit/607bfc9bff519ecc32c02ff3203b7ec71d201fde
+    OIIO::attribute ("threads", 1);
 #endif
 }
 

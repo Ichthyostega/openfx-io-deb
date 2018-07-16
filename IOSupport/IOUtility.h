@@ -63,7 +63,7 @@ NAMESPACE_OFX_IO_ENTER
 inline std::string
 basename( std::string const& pathname )
 {
-#if defined(_WIN32) || defined(WIN64)
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32) || defined(WIN64)
     std::size_t found = pathname.find_last_of("/\\");
 #else
     std::size_t found = pathname.find_last_of("/");
@@ -75,7 +75,7 @@ basename( std::string const& pathname )
 inline std::string
 dirname( std::string const& pathname )
 {
-#if defined(_WIN32) || defined(WIN64)
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32) || defined(WIN64)
     std::size_t found = pathname.find_last_of("/\\");
 #else
     std::size_t found = pathname.find_last_of("/");
@@ -198,10 +198,10 @@ intersect(const OfxRectI& r1,
         return false;
     }
 
-    intersection->x1 = std::max(r1.x1, r2.x1);
-    intersection->x2 = std::min(r1.x2, r2.x2);
-    intersection->y1 = std::max(r1.y1, r2.y1);
-    intersection->y2 = std::min(r1.y2, r2.y2);
+    intersection->x1 = (std::max)(r1.x1, r2.x1);
+    intersection->x2 = (std::min)(r1.x2, r2.x2);
+    intersection->y1 = (std::max)(r1.y1, r2.y1);
+    intersection->y2 = (std::min)(r1.y2, r2.y2);
 
     return true;
 }

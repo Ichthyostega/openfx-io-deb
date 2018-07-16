@@ -31,7 +31,7 @@
 #include <climits>
 #include <algorithm>
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 #include <IlmThreadPool.h>
 #endif
 
@@ -1886,7 +1886,7 @@ ReadOIIOPlugin::getConfig(ImageSpec* config) const
             config->attribute("raw:HighlightMode", (int)rawHighlightMode);
         } else {
             // rebuild level, from 0 to 7
-            int rawHighlightRebuildLevel = std::max( 0,std::min(_rawHighlightRebuildLevel->getValue(), 7) );
+            int rawHighlightRebuildLevel = (std::max)( 0,(std::min)(_rawHighlightRebuildLevel->getValue(), 7) );
             config->attribute("raw:HighlightMode", (int)rawHighlightMode + rawHighlightRebuildLevel);
         }
     }
@@ -2328,10 +2328,10 @@ ReadOIIOPlugin::decodePlane(const string& filename,
     // Where to write the data in the buffer, everything outside of that is black
     // It depends on the extra padding we added in getFrameBounds
     OfxRectI renderWindowUnPadded;
-    renderWindowUnPadded.x1 = std::max(renderWindow.x1, specBounds.x1);
-    renderWindowUnPadded.y1 = std::max(renderWindow.y1, specBounds.y1);
-    renderWindowUnPadded.x2 = std::min(renderWindow.x2, specBounds.x2);
-    renderWindowUnPadded.y2 = std::min(renderWindow.y2, specBounds.y2);
+    renderWindowUnPadded.x1 = (std::max)(renderWindow.x1, specBounds.x1);
+    renderWindowUnPadded.y1 = (std::max)(renderWindow.y1, specBounds.y1);
+    renderWindowUnPadded.x2 = (std::min)(renderWindow.x2, specBounds.x2);
+    renderWindowUnPadded.y2 = (std::min)(renderWindow.y2, specBounds.y2);
 
     // The renderWindowUnPadded must be contained in the original render Window
     assert(renderWindowUnPadded.x1 >= renderWindow.x1 && renderWindowUnPadded.x2 <= renderWindow.x2 &&
@@ -2483,10 +2483,10 @@ ReadOIIOPlugin::decodePlane(const string& filename,
                 assert( kSupportsTiles || (!kSupportsTiles && (renderWindow.x2 - renderWindow.x1) == spec.width && (renderWindow.y2 - renderWindow.y1) == spec.height) );
 
                 // We clamp to the valid scanlines portion.
-                int ybeginClamped = std::min(std::max(spec.y, ybegin), spec.y + spec.height);
-                int yendClamped = std::min(std::max(spec.y, yend), spec.y + spec.height);
-                int xbeginClamped = std::min(std::max(spec.x, xbegin), spec.x + spec.width);
-                int xendClamped = std::min(std::max(spec.x, xend), spec.x + spec.width);
+                int ybeginClamped = (std::min)((std::max)(spec.y, ybegin), spec.y + spec.height);
+                int yendClamped = (std::min)((std::max)(spec.y, yend), spec.y + spec.height);
+                int xbeginClamped = (std::min)((std::max)(spec.x, xbegin), spec.x + spec.width);
+                int xendClamped = (std::min)((std::max)(spec.x, xend), spec.x + spec.width);
 
                 // Do not call valid_tile_range because a tiled file can only be read with read_tiles with OpenImageIO.
                 // Otherwise it will give the following error: called OpenEXRInput::read_native_scanlines without an open file
@@ -2539,10 +2539,10 @@ ReadOIIOPlugin::decodePlane(const string& filename,
                         // tiledYEnd must be at a valid multiple of tile_height from spec.y
                         tiledYEnd = spec.y + (int)std::ceil((double)(yendClamped - spec.y) / spec.tile_height ) * spec.tile_height;
 
-                        tiledXBegin = std::max(spec.x, tiledXBegin);
-                        tiledYBegin = std::max(spec.y, tiledYBegin);
-                        tiledXEnd = std::min(spec.x + spec.width, tiledXEnd);
-                        tiledYEnd = std::min(spec.y + spec.height, tiledYEnd);
+                        tiledXBegin = (std::max)(spec.x, tiledXBegin);
+                        tiledYBegin = (std::max)(spec.y, tiledYBegin);
+                        tiledXEnd = (std::min)(spec.x + spec.width, tiledXEnd);
+                        tiledYEnd = (std::min)(spec.y + spec.height, tiledYEnd);
 
                         // Check that we made up a correct tile range
                         assert( spec.valid_tile_range(tiledXBegin, tiledXEnd, tiledYBegin, tiledYEnd, zbegin, zend) );
@@ -2973,7 +2973,10 @@ ReadOIIOPluginFactory::load()
 {
     {
         int i = 0;
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+        bool libraw_gpl2 = false;
+        bool libraw_gpl3 = false;
+#elif LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
         unsigned caps = libraw_capabilities();
         bool libraw_gpl2 = caps & LIBRAW_CAPS_DEMOSAICSGPL2;
         bool libraw_gpl3 = caps & LIBRAW_CAPS_DEMOSAICSGPL3;
@@ -3064,9 +3067,13 @@ ReadOIIOPluginFactory::unload()
     ImageCache::destroy(sharedcache);
 #  endif
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
     //Kill all threads otherwise when the static global thread pool joins it threads there is a deadlock on Mingw
     IlmThread::ThreadPool::globalThreadPool().setNumThreads(0);
+
+    // Workaround to a bug: https://github.com/OpenImageIO/oiio/issues/1795
+    // see also https://github.com/LuxCoreRender/LuxCore/commit/607bfc9bff519ecc32c02ff3203b7ec71d201fde
+    OIIO::attribute ("threads", 1);
 #endif
 }
 
@@ -3308,7 +3315,10 @@ ReadOIIOPluginFactory::describeInContext(ImageEffectDescriptor &desc,
             {
                 ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamRawDemosaic);
                 param->setLabelAndHint(kParamRawDemosaicLabel);
-#             if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+#             if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+                bool libraw_gpl2 = false;
+                bool libraw_gpl3 = false;
+#             elif LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
                 unsigned caps = libraw_capabilities();
                 bool libraw_gpl2 = caps & LIBRAW_CAPS_DEMOSAICSGPL2;
                 bool libraw_gpl3 = caps & LIBRAW_CAPS_DEMOSAICSGPL3;

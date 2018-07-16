@@ -36,7 +36,7 @@
 #define DBG(x) (void)0
 #endif
 
-#ifdef _WIN32
+#if (defined(_WIN32) || defined(__WIN32__) || defined(WIN32))
 #include <windows.h>
 #endif
 
@@ -723,7 +723,7 @@ GenericReaderPlugin::getSequenceTime(double t,
     return eGetSequenceTimeError;
 }
 
-#ifdef _WIN32
+#if (defined(_WIN32) || defined(__WIN32__) || defined(WIN32))
 std::wstring
 utf8ToUtf16 (const string& str)
 {
@@ -740,7 +740,7 @@ utf8ToUtf16 (const string& str)
 static bool
 checkIfFileExists (const string& path)
 {
-#ifdef _WIN32
+#if (defined(_WIN32) || defined(__WIN32__) || defined(WIN32))
     WIN32_FIND_DATAW FindFileData;
     std::wstring wpath = utf8ToUtf16 (path);
     HANDLE handle = FindFirstFileW(wpath.c_str(), &FindFileData);
@@ -1583,9 +1583,9 @@ GenericReaderPlugin::render(const RenderArguments &args)
     _originalProxyScale->getValue(proxyOriginalScale.x, proxyOriginalScale.y);
 
     ///We only support downscaling at a power of two.
-    unsigned int renderMipmapLevel = getLevelFromScale( std::min(args.renderScale.x, args.renderScale.y) );
-    unsigned int proxyMipMapThresholdLevel = (proxyScaleThreshold.x == 0 || proxyScaleThreshold.y == 0) ? renderMipmapLevel :  getLevelFromScale( std::min(proxyScaleThreshold.x, proxyScaleThreshold.y) );
-    unsigned int originalProxyMipMapLevel = (proxyOriginalScale.x == 0 || proxyOriginalScale.y == 0) ? renderMipmapLevel : getLevelFromScale( std::min(proxyOriginalScale.x, proxyOriginalScale.y) );
+    unsigned int renderMipmapLevel = getLevelFromScale( (std::min)(args.renderScale.x, args.renderScale.y) );
+    unsigned int proxyMipMapThresholdLevel = (proxyScaleThreshold.x == 0 || proxyScaleThreshold.y == 0) ? renderMipmapLevel :  getLevelFromScale( (std::min)(proxyScaleThreshold.x, proxyScaleThreshold.y) );
+    unsigned int originalProxyMipMapLevel = (proxyOriginalScale.x == 0 || proxyOriginalScale.y == 0) ? renderMipmapLevel : getLevelFromScale( (std::min)(proxyOriginalScale.x, proxyOriginalScale.y) );
 
     if ( kSupportsRenderScale && (renderMipmapLevel >= proxyMipMapThresholdLevel) ) {
         useProxy = true;
@@ -1718,9 +1718,15 @@ GenericReaderPlugin::render(const RenderArguments &args)
             MultiPlane::ImagePlaneDesc plane, pairedPlane;
             MultiPlane::ImagePlaneDesc::mapOFXComponentsTypeStringToPlanes(it->rawComps, &plane, &pairedPlane);
             const std::vector<std::string>& channels = plane.getChannels();
-            if (channels.size() < 3 || (channels[0] != "R" && channels[1] != "G" && channels[2] != "B")) {
-                isColor = false;
-            }
+            isColor = ( (channels.size() == 3 &&
+                         channels[0] == "R" &&
+                         channels[1] == "G" &&
+                         channels[2] == "B") ||
+                        (channels.size() == 4 &&
+                         channels[0] == "R" &&
+                         channels[1] == "G" &&
+                         channels[2] == "B" &&
+                         channels[3] == "A") );
             isCustom = true;
             if (isColor) {
 #ifdef OFX_IO_USING_OCIO
@@ -1810,15 +1816,15 @@ GenericReaderPlugin::render(const RenderArguments &args)
                     frameBounds.y1 = frameHeight  - frameBounds.y1;
                     frameBounds.y2 = frameHeight  - frameBounds.y2;
 
-                    renderWindowFullRes.x1 = std::min( (double)std::ceil( (double)renderWindowFullRes.x1 / tile_width ) * tile_width, (double)frameBounds.x1 );
-                    renderWindowFullRes.y1 = std::min( (double)std::ceil( (double)renderWindowFullRes.y1 / tile_height ) * tile_height, (double)frameBounds.y1 );
-                    renderWindowFullRes.x2 = std::max( (double)std::floor( (double)renderWindowFullRes.x2 / tile_width ) * tile_width, (double)frameBounds.x2 );
-                    renderWindowFullRes.y2 = std::max( (double)std::floor( (double)renderWindowFullRes.y2 / tile_height ) * tile_height, (double)frameBounds.y2 );
+                    renderWindowFullRes.x1 = (std::min)( (double)std::ceil( (double)renderWindowFullRes.x1 / tile_width ) * tile_width, (double)frameBounds.x1 );
+                    renderWindowFullRes.y1 = (std::min)( (double)std::ceil( (double)renderWindowFullRes.y1 / tile_height ) * tile_height, (double)frameBounds.y1 );
+                    renderWindowFullRes.x2 = (std::max)( (double)std::floor( (double)renderWindowFullRes.x2 / tile_width ) * tile_width, (double)frameBounds.x2 );
+                    renderWindowFullRes.y2 = (std::max)( (double)std::floor( (double)renderWindowFullRes.y2 / tile_height ) * tile_height, (double)frameBounds.y2 );
                 } else {
-                    renderWindowFullRes.x1 = std::max( (double)std::floor( (double)renderWindowFullRes.x1 / tile_width ) * tile_width, (double)frameBounds.x1 );
-                    renderWindowFullRes.y1 = std::max( (double)std::floor( (double)renderWindowFullRes.y1 / tile_height ) * tile_height, (double)frameBounds.y1 );
-                    renderWindowFullRes.x2 = std::min( (double)std::ceil( (double)renderWindowFullRes.x2 / tile_width ) * tile_width, (double)frameBounds.x2 );
-                    renderWindowFullRes.y2 = std::min( (double)std::ceil( (double)renderWindowFullRes.y2 / tile_height ) * tile_height, (double)frameBounds.y2 );
+                    renderWindowFullRes.x1 = (std::max)( (double)std::floor( (double)renderWindowFullRes.x1 / tile_width ) * tile_width, (double)frameBounds.x1 );
+                    renderWindowFullRes.y1 = (std::max)( (double)std::floor( (double)renderWindowFullRes.y1 / tile_height ) * tile_height, (double)frameBounds.y1 );
+                    renderWindowFullRes.x2 = (std::min)( (double)std::ceil( (double)renderWindowFullRes.x2 / tile_width ) * tile_width, (double)frameBounds.x2 );
+                    renderWindowFullRes.y2 = (std::min)( (double)std::ceil( (double)renderWindowFullRes.y2 / tile_height ) * tile_height, (double)frameBounds.y2 );
                 }
 
                 if ( isTileOrientationTopDown() ) {
@@ -1839,9 +1845,9 @@ GenericReaderPlugin::render(const RenderArguments &args)
             DBG( std::printf("decode (to tmp)\n") );
 
             if (!_isMultiPlanar) {
-                decode(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, renderWindowFullRes, tmpPixelData, renderWindowFullRes, it->comps, it->numChans, tmpRowBytes);
+                decode(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, renderWindowFullRes, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, tmpRowBytes);
             } else {
-                decodePlane(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, renderWindowFullRes, tmpPixelData, renderWindowFullRes, it->comps, it->numChans, it->rawComps, tmpRowBytes);
+                decodePlane(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, renderWindowFullRes, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, it->rawComps, tmpRowBytes);
             }
 
             if ( abort() ) {
