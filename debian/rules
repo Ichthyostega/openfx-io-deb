@@ -1,0 +1,35 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with quilt
+
+override_dh_auto_build:
+# git clone https://github.com/NatronGitHub/openfx
+# git clone https://github.com/NatronGitHub/openfx-supportext SupportExt
+# git clone https://github.com/NatronGitHub/SequenceParsing IOSupport/SequenceParsing
+# cd IOSupport/SequenceParsing && git submodule update -i --recursive && cd ../..
+# find -name '.git*' | xargs rm -rf
+
+	$(MAKE) -j $(NCPUS) CONFIG+=stable EXPAT_INCLUDE=/usr/include V=1
+
+override_dh_auto_install:
+	$(MAKE) install CONFIG+=stable \
+	DESTDIR=$(CURDIR)/debian/openfx-io-natron
+
+override_dh_auto_clean:
+	$(MAKE) clean CONFIG+=stable \
+	DESTDIR=$(CURDIR)/debian/openfx-io-natron
+
+override_dh_clean:
+	dh_clean
+
+	-rm -rf openfx/Documentation
+	-rm -rf openfx/Examples
+	-rm -rf openfx/website
+	-rm -rf openfx/scripts
+	-rm -rf openfx/Guide
+
+	-rm -rf openfx/HostSupport/expat-2.2.4
+	-rm -rf openfx/HostSupport/examples
+
+	-rm -rf openfx/Support/PropTester

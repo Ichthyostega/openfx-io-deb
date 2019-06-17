@@ -1,0 +1,17 @@
+Source: openfx-io-natron-dmo
+Section: video
+Priority: optional
+Maintainer: Christian Marillat <marillat@deb-multimedia.org>
+Bugs: mailto:marillat@deb-multimedia.org
+Homepage: https://github.com/NatronGitHub/openfx-io
+Standards-Version: 4.3.0
+Build-Depends: debhelper-compat (= 12), libopenimageio-dev (>= 2.0.5~), quilt,
+ libavcodec-dev, libopencolorio-dev, libraw-dev, libopenexr-dev, libavformat-dev,
+ libswscale-dev, libpng-dev, libboost-dev, libgl1-mesa-dev, libtiff5-dev,
+ libopenjp2-7-dev, libwebp-dev, libseexpr-dev,
+
+Package: openfx-io-natron
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: set of Readers/Writers plugins written using the OpenFX standard.
+ A set of Readers/Writers plugins written using the OpenFX standard.
