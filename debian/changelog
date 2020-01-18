@@ -1,9 +1,10 @@
-openfx-io-natron (1:2.3.12-1~stretch) Lumiera-stretch-tool; urgency=medium
+openfx-io-natron (1:2.3.12-1~buster) Lumiera-buster-tool; urgency=low
 
-  * Rebuild for use on Debian/Stretch(stable)
-  * unmodified port from the Ubuntu/Bionic PPA of Aleksey Samoilov
+  * Rebuild for use on Debian/Buster(stable)
+  * based on the Ubuntu/Bionic PPA of Aleksey Samoilov(meanwhile deleted)
+  * adjust dependency to accept any libboost-dev
 
- -- Hermann Vosseler <deb@ichthyostega.de>  Sat, 26 May 2018 05:22:23 +0200
+ -- Hermann Vosseler <deb@ichthyostega.de>  Sat, 18 Jan 2020 01:00:15 +0100
 
 openfx-io-natron (1:2.3.12-1~bionic) bionic; urgency=low
 

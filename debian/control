@@ -6,7 +6,7 @@ Homepage: https://github.com/MrKepzie/openfx-io
 Standards-Version: 4.1.3
 Build-Depends: debhelper (>= 10), libopenimageio-dev, libseexpr-dev, quilt,
  libavcodec-dev, libopencolorio-dev, libraw-dev, libopenexr-dev, libavformat-dev,
- libswscale-dev, libpng-dev, libboost1.62-dev, libgl1-mesa-dev, libtiff5-dev,
+ libswscale-dev, libpng-dev, libboost-dev, libgl1-mesa-dev, libtiff5-dev,
  libopenjp2-7-dev, libwebp-dev, pkg-config, libjpeg-turbo8-dev
 
 Package: openfx-io-natron
