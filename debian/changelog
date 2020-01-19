@@ -1,3 +1,18 @@
+openfx-io-natron-dmo (2.3.14-dmo3.1~buster) Lumiera-buster-tool; urgency=low
+
+  * add missing pkg-config dependency
+  * Rebuild for use on Debian/Buster(stable)
+
+ -- Hermann Vosseler <deb@ichthyostega.de>  Sun, 19 Jan 2020 19:16:13 +0100
+
+openfx-io-natron-dmo (2.3.14-dmo3~buster) Lumiera-buster-tool; urgency=low
+
+  * Rebuild for use on Debian/Buster(stable)
+  * adjust debhelper compat to 11
+  * drop quilt dependency (unnecessary for DEB format 3.0)
+
+ -- Hermann Vosseler <deb@ichthyostega.de>  Sat, 18 Jan 2020 05:37:43 +0100
+
 openfx-io-natron-dmo (2.3.14-dmo3) unstable; urgency=medium
 
   * Fix build for libopenimageio 2.0 (patch from upstream) (Thanks to Avi

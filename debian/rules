@@ -1,16 +1,18 @@
 #!/usr/bin/make -f
 
-%:
-	dh $@ --with quilt
-
-override_dh_auto_build:
 # git clone https://github.com/NatronGitHub/openfx
 # git clone https://github.com/NatronGitHub/openfx-supportext SupportExt
 # git clone https://github.com/NatronGitHub/SequenceParsing IOSupport/SequenceParsing
 # cd IOSupport/SequenceParsing && git submodule update -i --recursive && cd ../..
 # find -name '.git*' | xargs rm -rf
 
-	$(MAKE) -j $(NCPUS) CONFIG+=stable EXPAT_INCLUDE=/usr/include V=1
+
+%:
+	dh $@
+
+
+override_dh_auto_build:
+	dh_auto_build -- CONFIG+=stable EXPAT_INCLUDE=/usr/include V=1
 
 override_dh_auto_install:
 	$(MAKE) install CONFIG+=stable \
