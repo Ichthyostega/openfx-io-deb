@@ -154,6 +154,7 @@ private:
 
     void fillWithBlack(PixelProcessorFilterBase & processor,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        void *dstPixelData,
                        const OfxRectI& dstBounds,
                        PixelComponentEnum dstPixelComponents,
@@ -251,14 +252,7 @@ OIIOResizePlugin::render(const RenderArguments &args)
 
         return;
     }
-    if ( (dst->getRenderScale().x != args.renderScale.x) ||
-         ( dst->getRenderScale().y != args.renderScale.y) ||
-         ( dst->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(dst, args);
 
     auto_ptr<const Image> src( _srcClip->fetchImage(args.time) );
     if ( src.get() ) {
@@ -350,17 +344,17 @@ OIIOResizePlugin::render(const RenderArguments &args)
             switch (dstBitDepth) {
             case eBitDepthUByte: {
                 BlackFiller<unsigned char> proc(*this, 4);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             case eBitDepthUShort: {
                 BlackFiller<unsigned short> proc(*this, 4);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             case eBitDepthFloat: {
                 BlackFiller<float> proc(*this, 4);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             default:
@@ -372,17 +366,17 @@ OIIOResizePlugin::render(const RenderArguments &args)
             switch (dstBitDepth) {
             case eBitDepthUByte: {
                 BlackFiller<unsigned char> proc(*this, 3);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             case eBitDepthUShort: {
                 BlackFiller<unsigned short> proc(*this, 3);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             case eBitDepthFloat: {
                 BlackFiller<float> proc(*this, 3);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             default:
@@ -395,17 +389,17 @@ OIIOResizePlugin::render(const RenderArguments &args)
             switch (dstBitDepth) {
             case eBitDepthUByte: {
                 BlackFiller<unsigned char> proc(*this, 1);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             case eBitDepthUShort: {
                 BlackFiller<unsigned short> proc(*this, 1);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             case eBitDepthFloat: {
                 BlackFiller<float> proc(*this, 1);
-                fillWithBlack(proc, args.renderWindow, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+                fillWithBlack(proc, args.renderWindow, args.renderScale, dstPixelData, dstBounds, dstComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
                 break;
             }
             default:
@@ -506,6 +500,7 @@ OIIOResizePlugin::renderInternal(const RenderArguments & /*args*/,
 void
 OIIOResizePlugin::fillWithBlack(PixelProcessorFilterBase & processor,
                                 const OfxRectI &renderWindow,
+                                const OfxPointD& renderScale,
                                 void *dstPixelData,
                                 const OfxRectI& dstBounds,
                                 PixelComponentEnum dstPixelComponents,
@@ -517,7 +512,7 @@ OIIOResizePlugin::fillWithBlack(PixelProcessorFilterBase & processor,
     processor.setDstImg(dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstPixelDepth, dstRowBytes);
 
     // set the render window
-    processor.setRenderWindow(renderWindow);
+    processor.setRenderWindow(renderWindow, renderScale);
 
     // Call the base class process member, this will call the derived templated process code
     processor.process();

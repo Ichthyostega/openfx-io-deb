@@ -41,8 +41,10 @@
 GCC_DIAG_OFF(unused-parameter)
 #include <OpenImageIO/imagecache.h>
 GCC_DIAG_ON(unused-parameter)
+GCC_DIAG_OFF(deprecated-declarations)
 #include <libraw.h>
 #include <libraw_version.h>
+GCC_DIAG_ON(deprecated-declarations)
 
 #include <ofxNatron.h>
 
@@ -92,11 +94,18 @@ using std::make_pair;
 
 OFXS_NAMESPACE_ANONYMOUS_ENTER
 
+#if OIIO_PLUGIN_VERSION >= 22
+// OIIO_VERSION_MAJOR >= 2
+typedef std::unique_ptr<ImageInput> ImageInputPtr;
+#else
+typedef ImageInput* ImageInputPtr;
+#endif
+
 #define kPluginName "ReadOIIO"
 #define kPluginGrouping "Image/Readers"
 #define kPluginDescription \
     "Read images using OpenImageIO.\n\n" \
-    "Ouput is always Premultiplied (alpha is associated).\n\n" \
+    "Output is always Premultiplied (alpha is associated).\n\n" \
     "The \"Image Premult\" parameter controls the file premultiplication state, " \
     "and can be used to fix wrong file metadata (see the help for that parameter)."
 #define kPluginIdentifier "fr.inria.openfx.ReadOIIO"
@@ -171,6 +180,11 @@ enum RawOutputColorEnum
     eRawOutputColorACES,
 #endif
 };
+
+#if OIIO_VERSION >= 10904
+#define kParamRawAber "rawAber"
+#define kParamRawAberLabel "Aber.", "Correction of chromatic aberrations, given as a red multiplier and a blue multiplier. The default values of (1.,1.) correspond to no correction."
+#endif
 
 // int use_camera_matrix;
 //0: do not use embedded color profile
@@ -405,6 +419,7 @@ private:
                         int view,
                         bool isPlayback,
                         const OfxRectI& renderWindow,
+                        const OfxPointD& renderScale,
                         float *pixelData,
                         const OfxRectI& bounds,
                         PixelComponentEnum pixelComponents,
@@ -428,21 +443,21 @@ private:
 
             return;
         }
-        decodePlane(filename, time, view, isPlayback, renderWindow, pixelData, bounds, pixelComponents, pixelComponentCount, rawComps, rowBytes);
+        decodePlane(filename, time, view, isPlayback, renderWindow, renderScale, pixelData, bounds, pixelComponents, pixelComponentCount, rawComps, rowBytes);
     }
 
-    virtual void decodePlane(const string& filename, OfxTime time, int view, bool isPlayback, const OfxRectI& renderWindow, float *pixelData, const OfxRectI& bounds,
+    virtual void decodePlane(const string& filename, OfxTime time, int view, bool isPlayback, const OfxRectI& renderWindow, const OfxPointD& renderScale, float *pixelData, const OfxRectI& bounds,
                              PixelComponentEnum pixelComponents, int pixelComponentCount, const string& rawComponents, int rowBytes) OVERRIDE FINAL;
 
     void getOIIOChannelIndexesFromLayerName(const string& filename, int view, const string& layerName, PixelComponentEnum pixelComponents, const vector<ImageSpec>& subimages, vector<int>& channels, int& numChannels, int& subImageIndex);
 
-    void openFile(const string& filename, bool useCache, ImageInput** img, vector<ImageSpec>* subimages);
+    void openFile(const string& filename, bool useCache, ImageInputPtr* img, vector<ImageSpec>* subimages);
 
     virtual bool getFrameBounds(const string& filename, OfxTime time, int view, OfxRectI *bounds, OfxRectI *format, double *par, string *error,  int* tile_width, int* tile_height) OVERRIDE FINAL;
 
     string metadata(const string& filename);
 
-    void getSpecsFromImageInput(ImageInput* img, vector<ImageSpec>* subimages) const;
+    void getSpecsFromImageInput(const ImageInputPtr& img, vector<ImageSpec>* subimages) const;
 
     void getSpecsFromCache(const string& filename, vector<ImageSpec>* subimages) const;
 
@@ -477,6 +492,9 @@ private:
 #endif
     DoubleParam* _rawExposure;
     ChoiceParam* _rawDemosaic;
+#if OIIO_VERSION >= 10904
+    Double2DParam* _rawAber;
+#endif
 
     ///V2 params
     ChoiceParam* _outputLayer;
@@ -553,7 +571,9 @@ ReadOIIOPlugin::ReadOIIOPlugin(OfxImageEffectHandle handle,
 #endif
     _rawExposure = fetchDoubleParam(kParamRawExposure);
     _rawDemosaic = fetchChoiceParam(kParamRawDemosaic);
-
+#if OIIO_VERSION >= 10904
+    _rawAber = fetchDouble2DParam(kParamRawAber);
+#endif
     _offsetNegativeDispWindow = fetchBooleanParam(kParamOffsetNegativeDisplayWindow);
     _edgePixels = fetchChoiceParam(kParamEdgePixels);
 
@@ -693,6 +713,9 @@ ReadOIIOPlugin::changedParam(const InstanceChangedArgs &args,
 #if OIIO_VERSION >= 10808 || (OIIO_VERSION >= 10717 && OIIO_VERSION < 10800)
                (paramName == kParamRawHighlightMode) ||
                (paramName == kParamRawHighlightRebuildLevel) ||
+#endif
+#if OIIO_VERSION >= 10904
+               (paramName == kParamRawAber) ||
 #endif
                (paramName == kParamRawDemosaic)) {
         // advanced parameters changed, invalidate the cache entries for the whole sequence
@@ -1038,8 +1061,28 @@ ReadOIIOPlugin::getLayers(const vector<ImageSpec>& subimages,
             }
 
             //Extract the view layer and channel to our format so we can compare strings
-            string view, layer, channel;
-            extractLayerName(layerChanName, views, &view, &layer, &channel);
+            string originalView, originalLayer, channel;
+            extractLayerName(layerChanName, views, &originalView, &originalLayer, &channel);
+            string view = originalView;
+            string layer = originalLayer;
+
+            if ( view.empty() && !partsViewAttribute.empty() && ( i < partsViewAttribute.size() ) && !partsViewAttribute[i].empty() ) {
+                view = partsViewAttribute[i];
+            }
+            if ( view.empty() && !layer.empty() ) {
+                ///Check if the layer we parsed is in fact not a view name
+                // Note: This code was removed in commit https://github.com/NatronGitHub/openfx-io/commit/79ac6546e0a1aed7f14fd15fbc3dfd634b91d4c5
+                // but it is necessary to read all views of multiview EXRs such
+                // as https://github.com/openexr/openexr-images/raw/master/MultiView/Balls.exr
+                // see issue https://github.com/NatronGitHub/Natron/issues/429
+                for (std::size_t v = 0; v < views.size(); ++v) {
+                    if ( caseInsensitiveCompare(views[v], layer) ) {
+                        view = layer;
+                        layer.clear();
+                        break;
+                    }
+                }
+            }
 
             ViewsLayersMap::iterator foundView = layersMap->end();
             if ( view.empty() ) {
@@ -1052,6 +1095,13 @@ ReadOIIOPlugin::getLayers(const vector<ImageSpec>& subimages,
                         break;
                     }
                 }
+            }
+            if ( foundView == layersMap->end() ) {
+                //The view does not exist in the metadata, this is probably a channel named aaa.bbb.c, just concatenate aaa.bbb as a single layer name
+                //and put it in the "Main" view
+                layer = view + "." + layer;
+                view.clear();
+                foundView = layersMap->begin();
             }
 
             if (layer.empty()) {
@@ -1072,22 +1122,22 @@ ReadOIIOPlugin::getLayers(const vector<ImageSpec>& subimages,
                     layer = kReadOIIOColorLayer;
                 } else if (channel == "X") {
                     //try to put XYZ together, unless Z is alone
-                    bool hasY = hasChannelName(views, view, layer, "Y", subimages[i].channelnames);
-                    bool hasZ = hasChannelName(views, view, layer, "Z", subimages[i].channelnames);
+                    bool hasY = hasChannelName(views, originalView, originalLayer, "Y", subimages[i].channelnames);
+                    bool hasZ = hasChannelName(views, originalView, originalLayer, "Z", subimages[i].channelnames);
                     if (hasY && hasZ) {
                         layer = kReadOIIOXYZLayer;
                     }
                 } else if (channel == "Y") {
                     //try to put XYZ together, unless Z is alone
-                    bool hasX = hasChannelName(views, view, layer, "X", subimages[i].channelnames);
-                    bool hasZ = hasChannelName(views, view, layer, "Z", subimages[i].channelnames);
+                    bool hasX = hasChannelName(views, originalView, originalLayer, "X", subimages[i].channelnames);
+                    bool hasZ = hasChannelName(views, originalView, originalLayer, "Z", subimages[i].channelnames);
                     if (hasX && hasZ) {
                         layer = kReadOIIOXYZLayer;
                     } else {
-                        bool hasR = hasChannelName(views, view, layer, "R", subimages[i].channelnames);
-                        bool hasG = hasChannelName(views, view, layer, "G", subimages[i].channelnames);
-                        bool hasB = hasChannelName(views, view, layer, "B", subimages[i].channelnames);
-                        bool hasI = hasChannelName(views, view, layer, "I", subimages[i].channelnames);
+                        bool hasR = hasChannelName(views, originalView, originalLayer, "R", subimages[i].channelnames);
+                        bool hasG = hasChannelName(views, originalView, originalLayer, "G", subimages[i].channelnames);
+                        bool hasB = hasChannelName(views, originalView, originalLayer, "B", subimages[i].channelnames);
+                        bool hasI = hasChannelName(views, originalView, originalLayer, "I", subimages[i].channelnames);
                         if (!hasR && !hasG && !hasB && !hasI) {
                             // Y is for luminance in this case
                             layer = kReadOIIOColorLayer;
@@ -1095,8 +1145,8 @@ ReadOIIOPlugin::getLayers(const vector<ImageSpec>& subimages,
                     }
                 } else if (channel == "Z") {
                     //try to put XYZ together, unless Z is alone
-                    bool hasX = hasChannelName(views, view, layer, "X", subimages[i].channelnames);
-                    bool hasY = hasChannelName(views, view, layer, "Y", subimages[i].channelnames);
+                    bool hasX = hasChannelName(views, originalView, originalLayer, "X", subimages[i].channelnames);
+                    bool hasY = hasChannelName(views, originalView, originalLayer, "Y", subimages[i].channelnames);
                     if (hasX && hasY) {
                         layer = kReadOIIOXYZLayer;
                     } else {
@@ -1288,7 +1338,7 @@ ReadOIIOPlugin::buildOutputLayerMenu(const vector<ImageSpec>& subimages)
 } // buildOutputLayerMenu
 
 void
-ReadOIIOPlugin::getSpecsFromImageInput(ImageInput* img,
+ReadOIIOPlugin::getSpecsFromImageInput(const ImageInputPtr& img,
                                        vector<ImageSpec>* subimages) const
 {
     subimages->clear();
@@ -1345,8 +1395,12 @@ ReadOIIOPlugin::getSpecs(const string &filename,
         // use the right config
         ImageSpec config;
         getConfig(&config);
-        
+
+#     if OIIO_PLUGIN_VERSION >= 22
+        ImageInputPtr img = ImageInput::open(filename, &config);
+#     else
         auto_ptr<ImageInput> img( ImageInput::open(filename, &config) );
+#     endif
         if ( !img.get() ) {
             if (error) {
                 *error = "Could node open file " + filename;
@@ -1354,7 +1408,11 @@ ReadOIIOPlugin::getSpecs(const string &filename,
 
             return;
         }
+#     if OIIO_PLUGIN_VERSION >= 22
+        getSpecsFromImageInput(img, subimages);
+#     else
         getSpecsFromImageInput(img.get(), subimages);
+#     endif
         img->close();
     }
     if ( subimages->empty() ) {
@@ -1871,6 +1929,22 @@ ReadOIIOPlugin::getConfig(ImageSpec* config) const
         config->attribute("raw:Exposure", (float)rawExposure);
     }
 
+#if OIIO_VERSION >= 10904
+    // Chromatic Aberration
+    // see:
+    // https://github.com/NatronGitHub/Natron/issues/309
+    // https://github.com/OpenImageIO/oiio/issues/2029
+    // added to OIIO 1.9.4 via https://github.com/OpenImageIO/oiio/pull/2030
+    // Correction of chromatic aberrations; the only specified values are
+    // - the red multiplier
+    // - the blue multiplier.
+    OfxPointD rawAber = _rawAber->getValue();
+    if (rawAber.x != 1. || rawAber.y != 1.) {
+        float floats[2] = {(float)rawAber.x, (float)rawAber.y};
+        config->attribute("raw:aber", TypeDesc(TypeDesc::FLOAT, 2), &floats[0]);
+    }
+#endif
+
 #if OIIO_VERSION >= 10808 || (OIIO_VERSION >= 10717 && OIIO_VERSION < 10800)
     // Highlight adjustment
     // (0=clip, 1=unclip, 2=blend, 3+=rebuild)
@@ -1954,7 +2028,7 @@ ReadOIIOPlugin::getConfig(ImageSpec* config) const
 void
 ReadOIIOPlugin::openFile(const string& filename,
                          bool useCache,
-                         ImageInput** img,
+                         ImageInputPtr* img,
                          vector<ImageSpec>* subimages)
 {
     if (_cache && useCache) {
@@ -2139,6 +2213,7 @@ ReadOIIOPlugin::decodePlane(const string& filename,
                             int view,
                             bool isPlayback,
                             const OfxRectI& renderWindow,
+                            const OfxPointD& renderScale,
                             float *pixelData,
                             const OfxRectI& bounds,
                             PixelComponentEnum pixelComponents,
@@ -2146,6 +2221,8 @@ ReadOIIOPlugin::decodePlane(const string& filename,
                             const string& rawComponents,
                             int rowBytes)
 {
+    assert(renderScale.x == 1. && renderScale.y == 1.);
+    unused(renderScale);
     unused(pixelComponentCount);
 #if OIIO_VERSION >= 10605
     // Use cache only if not during playback because the OIIO cache eats too much RAM when playing scaline-based EXRs.
@@ -2172,13 +2249,21 @@ ReadOIIOPlugin::decodePlane(const string& filename,
 
     vector<int> channels;
     int numChannels = 0;
+# if OIIO_PLUGIN_VERSION >= 22
+    ImageInputPtr img;
+# else
     auto_ptr<ImageInput> img;
+# endif
     vector<ImageSpec> subimages;
 
-    ImageInput* rawImg = 0;
+    ImageInputPtr rawImg = 0;
     openFile(filename, useCache, &rawImg, &subimages);
     if (rawImg) {
+# if OIIO_PLUGIN_VERSION >= 22
+        img.swap(rawImg);
+# else
         img.reset(rawImg);
+#endif
     }
 
     if ( subimages.empty() ) {
@@ -2771,14 +2856,22 @@ ReadOIIOPlugin::metadata(const string& filename)
 {
     stringstream ss;
 
+# if OIIO_PLUGIN_VERSION >= 22
+    ImageInputPtr img;
+# else
     auto_ptr<ImageInput> img;
+# endif
 
     if (!_cache) {
         // use the right config
         ImageSpec config;
         getConfig(&config);
         
+#     if OIIO_PLUGIN_VERSION >= 22
+        img = ImageInput::open(filename, &config);
+#     else
         img.reset( ImageInput::open(filename, &config) );
+#     endif
         if ( !img.get() ) {
             setPersistentMessage(Message::eMessageError, "", string("ReadOIIO: cannot open file ") + filename);
             throwSuiteStatusException(kOfxStatFailed);
@@ -3012,7 +3105,11 @@ ReadOIIOPluginFactory::load()
     // hard-coded extensions list
     const char* extensionsl[] = {
         /*"bmp",*/ // OpenImageIO does not read correctly https://raw.githubusercontent.com/NatronGitHub/Natron-Tests/master/TestImageBMP/input.bmp
-        "cin", "dds", "dpx", "f3d", "fits", "hdr", "ico",
+        "cin", "dds", "dpx", "f3d", "fits", "hdr",
+#     if OIIO_VERSION >= 20100
+        "heic", "heif",
+#     endif
+        "ico",
         "iff", "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", "jp2", "j2k", "exr", "png",
         "pbm", "pgm", "ppm",
 #     if OIIO_VERSION >= 10605
@@ -3097,6 +3194,9 @@ ReadOIIOPluginFactory::describe(ImageEffectDescriptor &desc)
                                "FITS (*.fits)\n"
                                "GIF (*.gif)\n"
                                "HDR/RGBE (*.hdr)\n"
+#                           if OIIO_VERSION >= 20100
+                               "HEIC/HEIF (*.heic *.heif)\n"
+#                           endif
                                "ICO (*.ico)\n"
                                "IFF (*.iff)\n"
                                "JPEG (*.jpg *.jpe *.jpeg *.jif *.jfif *.jfi)\n"
@@ -3370,6 +3470,23 @@ ReadOIIOPluginFactory::describeInContext(ImageEffectDescriptor &desc,
                     page->addChild(*param);
                 }
             }
+#if OIIO_VERSION >= 10904
+            {
+                Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRawAber);
+                param->setLabelAndHint(kParamRawAberLabel);
+                param->setRange(0.5, 0.5, 1.5, 1.5);
+                param->setDisplayRange(0.99, 0.99, 1.01, 1.01);
+                param->setDefault(1., 1.);
+                param->setAnimates(false);
+                if (group) {
+                    param->setParent(*group);
+                }
+                if (page) {
+                    page->addChild(*param);
+                }
+            }
+#endif
+
         }
     }
 

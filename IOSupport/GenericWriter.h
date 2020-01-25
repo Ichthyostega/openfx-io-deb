@@ -116,25 +116,25 @@ public:
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
 
     /**
-     * @brief Overriden to handle premultiplication parameter given the input clip.
+     * @brief Overridden to handle premultiplication parameter given the input clip.
      * Make sure you call the base class implementation if you override it.
      **/
     virtual void changedClip(const OFX::InstanceChangedArgs &args, const std::string &clipName) OVERRIDE;
 
     /**
-     * @brief Overriden to set the clips premultiplication according to the user and plug-ins wishes.
+     * @brief Overridden to set the clips premultiplication according to the user and plug-ins wishes.
      * It also set the output components from the output components parameter
      **/
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE;
 
 
     /**
-     * @brief Overriden to request the views needed to render.
+     * @brief Overridden to request the views needed to render.
      **/
     virtual void getFrameViewsNeeded(const OFX::FrameViewsNeededArguments& args, OFX::FrameViewsNeededSetter& frameViews) OVERRIDE FINAL;
 
     /**
-     * @brief Overriden to clear any OCIO cache.
+     * @brief Overridden to clear any OCIO cache.
      * This function calls clearAnyCache() if you have any cache to clear.
      **/
     virtual void purgeCaches(void) OVERRIDE FINAL;
@@ -304,13 +304,13 @@ public:
      * using OCIO if needed.
      *
      * If view == renderRequestedView the output image will be fetched on the output clip
-     * and written to aswell.
+     * and written to as well.
      *
      * Post-condition:
      * - srcImgsHolder had the srcImg appended to it so it gets correctly released when it is
      * destroyed.
      * - tmpMemPtr is never NULL and points to either srcImg buffer or tmpMem buffer
-     * - If a color-space conversion occured, tmpMem/tmpMemPtr is non-null and tmpMem was added to srcImgsHolder
+     * - If a color-space conversion occurred, tmpMem/tmpMemPtr is non-null and tmpMem was added to srcImgsHolder
      * so it gets correctly released upon destruction.
      *
      * This function MAY throw exceptions aborting the action, that is why we use the InputImagesHolder RAII style class
@@ -367,6 +367,7 @@ protected:
 private:
 
     void copyPixelData(const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const OFX::Image* srcImg,
                        OFX::Image* dstImg)
     {
@@ -386,12 +387,13 @@ private:
         getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
         int dstPixelComponentCount = dstImg->getPixelComponentCount();
         copyPixels(*this,
-                   renderWindow,
+                   renderWindow, renderScale,
                    srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                    dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
 
     void copyPixelData(const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const void *srcPixelData,
                        const OfxRectI& srcBounds,
                        OFX::PixelComponentEnum srcPixelComponents,
@@ -409,12 +411,13 @@ private:
         getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
         int dstPixelComponentCount = dstImg->getPixelComponentCount();
         copyPixels(*this,
-                   renderWindow,
+                   renderWindow, renderScale,
                    srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                    dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
 
     void copyPixelData(const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const OFX::Image* srcImg,
                        void *dstPixelData,
                        const OfxRectI& dstBounds,
@@ -432,12 +435,13 @@ private:
         getImageData(srcImg, &srcPixelData, &srcBounds, &srcPixelComponents, &srcBitDepth, &srcRowBytes);
         int srcPixelComponentCount = srcImg->getPixelComponentCount();
         copyPixels(*this,
-                   renderWindow,
+                   renderWindow, renderScale,
                    srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                    dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
 
     void packPixelBuffer(const OfxRectI& renderWindow,
+                         const OfxPointD& renderScale,
                          const void *srcPixelData,
                          const OfxRectI& bounds,
                          OFX::BitDepthEnum bitDepth,
@@ -448,6 +452,7 @@ private:
                          void* dstPixelData);
 
     void interleavePixelBuffers(const OfxRectI& renderWindow,
+                                const OfxPointD& renderScale,
                                 const void *srcPixelData,
                                 const OfxRectI& bounds,
                                 const OFX::PixelComponentEnum srcPixelComponents,
@@ -464,6 +469,7 @@ private:
                                 void* dstPixelData);
 
     void unPremultPixelData(const OfxRectI &renderWindow,
+                            const OfxPointD& renderScale,
                             const void *srcPixelData,
                             const OfxRectI& srcBounds,
                             OFX::PixelComponentEnum srcPixelComponents,
@@ -478,6 +484,7 @@ private:
                             int dstRowBytes);
 
     void premultPixelData(const OfxRectI &renderWindow,
+                          const OfxPointD& renderScale,
                           const void *srcPixelData,
                           const OfxRectI& srcBounds,
                           OFX::PixelComponentEnum srcPixelComponents,

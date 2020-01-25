@@ -53,6 +53,13 @@ using std::map;
 
 OFXS_NAMESPACE_ANONYMOUS_ENTER
 
+#if OIIO_PLUGIN_VERSION >= 22
+// OIIO_VERSION_MAJOR >= 2
+typedef std::unique_ptr<ImageOutput> ImageOutputPtr;
+#else
+typedef ImageOutput* ImageOutputPtr;
+#endif
+
 #define kPluginName "WriteOIIO"
 #define kPluginGrouping "Image/Writers"
 #define kPluginDescription "Write images using OpenImageIO."
@@ -509,11 +516,12 @@ WriteOIIOPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
         string filename;
         _fileParam->getValue(filename);
         auto_ptr<ImageOutput> output( ImageOutput::create(filename) );
+        /*
         bool supportsNChannels = false;
         if ( output.get() ) {
             supportsNChannels = output->supports("nchannels");
         }
-
+        */
 
         MultiPlane::ImagePlaneDesc plane;
         OFX::Clip* clip = 0;
@@ -649,7 +657,7 @@ getDefaultBitDepth(const string& filepath,
                 ( format.find("png") != string::npos) ) {
         return eTuttlePluginBitDepth8;
     } else {
-        //cin, dpx, fits, j2k, j2c, jp2, jpe, sgi, tif, tiff, tpic, webp
+        //cin, dpx, fits, heic, heif, j2k, j2c, jp2, jpe, sgi, tif, tiff, tpic, webp
         return eTuttlePluginBitDepth16;
     }
 
@@ -821,7 +829,11 @@ WriteOIIOPlugin::refreshParamsVisibility(const string& filename)
 
 struct WriteOIIOEncodePlanesData
 {
+# if OIIO_PLUGIN_VERSION >= 22
+    ImageOutputPtr output;
+#else
     auto_ptr<ImageOutput> output;
+#endif
     vector<ImageSpec> specs;
 };
 
@@ -858,7 +870,11 @@ WriteOIIOPlugin::beginEncodeParts(void* user_data,
     assert( !viewsToRender.empty() );
     assert(user_data);
     WriteOIIOEncodePlanesData* data = (WriteOIIOEncodePlanesData*)user_data;
+# if OIIO_PLUGIN_VERSION >= 22
+    data->output = ImageOutput::create(filename);
+# else
     data->output.reset( ImageOutput::create(filename) );
+# endif
     if ( !data->output.get() ) {
         // output is NULL
         setPersistentMessage(Message::eMessageError, "", string("Cannot create output file ") + filename);
@@ -1400,7 +1416,11 @@ WriteOIIOPluginFactory::load()
 #if 0
     // hard-coded extensions list
     const char* extensionsl[] = {
-        "bmp", "cin", /*"dds",*/ "dpx", /*"f3d",*/ "fits", "hdr", "ico",
+        "bmp", "cin", /*"dds",*/ "dpx", /*"f3d",*/ "fits", "hdr",
+#     if OIIO_VERSION >= 20100
+        "heic", "heif",
+#     endif
+        "ico",
         "iff", "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", "jp2", "j2k", "exr", "png",
         "pbm", "pgm", "ppm",
 #     if OIIO_VERSION >= 10605
@@ -1458,6 +1478,9 @@ WriteOIIOPluginFactory::describe(ImageEffectDescriptor &desc)
                                //"Field3D (*.f3d)\n"
                                "FITS (*.fits)\n"
                                "HDR/RGBE (*.hdr)\n"
+#                           if OIIO_VERSION >= 20100
+                               "HEIC/HEIF (*.heic *.heif)\n"
+#                           endif
                                "Icon (*.ico)\n"
                                "IFF (*.iff)\n"
                                "JPEG (*.jpg *.jpe *.jpeg *.jif *.jfif *.jfi)\n"

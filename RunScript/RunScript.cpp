@@ -294,14 +294,7 @@ RunScriptPlugin::render(const RenderArguments &args)
 
                 return;
             }
-            if ( (srcImg->getRenderScale().x != args.renderScale.x) ||
-                 ( srcImg->getRenderScale().y != args.renderScale.y) ||
-                 ( srcImg->getField() != args.fieldToRender) ) {
-                setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-                throwSuiteStatusException(kOfxStatFailed);
-
-                return;
-            }
+            checkBadRenderScaleOrField(srcImg, args);
         }
     }
 
@@ -320,14 +313,7 @@ RunScriptPlugin::render(const RenderArguments &args)
 
         return;
     }
-    if ( (dstImg->getRenderScale().x != args.renderScale.x) ||
-         ( dstImg->getRenderScale().y != args.renderScale.y) ||
-         ( dstImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(dstImg, args);
 
     // create the script
     char scriptname[] = "/tmp/runscriptXXXXXX";
@@ -436,32 +422,18 @@ RunScriptPlugin::render(const RenderArguments &args)
 
             return;
         }
-        if ( (dstImg->getRenderScale().x != args.renderScale.x) ||
-             ( dstImg->getRenderScale().y != args.renderScale.y) ||
-             ( dstImg->getField() != args.fieldToRender) ) {
-            setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-            throwSuiteStatusException(kOfxStatFailed);
-
-            return;
-        }
+        checkBadRenderScaleOrField(dstImg, args);
 
         auto_ptr<const Image> srcImg( _srcClip[0]->fetchImage(args.time) );
 
         if ( !srcImg.get() ) {
             // fill output with black
-            fillBlack( *this, args.renderWindow, dstImg.get() );
+            fillBlack( *this, args.renderWindow, args.renderScale, dstImg.get() );
         } else {
-            if ( (srcImg->getRenderScale().x != args.renderScale.x) ||
-                 ( srcImg->getRenderScale().y != args.renderScale.y) ||
-                 ( srcImg->getField() != args.fieldToRender) ) {
-                setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-                throwSuiteStatusException(kOfxStatFailed);
-
-                return;
-            }
+            checkBadRenderScaleOrField(srcImg, args);
 
             // copy the source image (the writer is a no-op)
-            copyPixels( *this, args.renderWindow, srcImg.get(), dstImg.get() );
+            copyPixels( *this, args.renderWindow, args.renderScale, srcImg.get(), dstImg.get() );
         }
     }
 } // RunScriptPlugin::render
