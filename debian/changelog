@@ -1,108 +1,40 @@
+openfx-io-natron (2.3.15~rc14+libs-1~buster) Lumiera-buster-tool; urgency=low
+
+  * New Upstream Release (actually RC14 for Natron 2.3.15).
+  * packaged with git-buildpackage including git-submodules.
+  * optimised release build (-O2)
+  * Rebuild for use on Debian/Buster(stable).
+
+ -- Hermann Vosseler <deb@ichthyostega.de>  Sat, 25 Jan 2020 04:24:20 +0100
+
 openfx-io-natron-dmo (2.3.14-dmo3.1~buster) Lumiera-buster-tool; urgency=low
 
+  * adjust debhelper compat to 11
+  * drop quilt dependency (unnecessary for DEB format 3.0)
   * add missing pkg-config dependency
   * Rebuild for use on Debian/Buster(stable)
 
  -- Hermann Vosseler <deb@ichthyostega.de>  Sun, 19 Jan 2020 19:16:13 +0100
 
-openfx-io-natron-dmo (2.3.14-dmo3~buster) Lumiera-buster-tool; urgency=low
-
-  * Rebuild for use on Debian/Buster(stable)
-  * adjust debhelper compat to 11
-  * drop quilt dependency (unnecessary for DEB format 3.0)
-
- -- Hermann Vosseler <deb@ichthyostega.de>  Sat, 18 Jan 2020 05:37:43 +0100
-
 openfx-io-natron-dmo (2.3.14-dmo3) unstable; urgency=medium
 
-  * Fix build for libopenimageio 2.0 (patch from upstream) (Thanks to Avi
-    Rozen for the bug report)
+  * Fix build for libopenimageio 2.0 (patch from upstream)
+    (Thanks to Avi Rozen for the bug report)
+  * Rebuild against libraw19
 
  -- Christian Marillat <marillat@deb-multimedia.org>  Mon, 17 Jun 2019 11:37:20 +0200
 
-openfx-io-natron-dmo (2.3.14-dmo2) unstable; urgency=medium
+openfx-io-natron (1:2.3.10-1~bionic) bionic; urgency=low
 
-  * Rebuild against libraw19
+  * New upstream release
 
- -- Christian Marillat <marillat@deb-multimedia.org>  Wed, 31 Oct 2018 10:00:16 +0100
-
-openfx-io-natron-dmo (2.3.14-dmo1) unstable; urgency=medium
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Mon, 16 Jul 2018 19:14:23 +0200
-
-openfx-io-natron-dmo (2.3.13-dmo1) unstable; urgency=medium
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Wed, 27 Jun 2018 15:43:32 +0200
-
-openfx-io-natron-dmo (2.3.12-dmo1) unstable; urgency=medium
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Thu, 24 May 2018 08:59:43 +0200
-
-openfx-io-natron-dmo (2.3.11-dmo1) unstable; urgency=medium
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Mon, 07 May 2018 12:48:04 +0200
-
-openfx-io-natron-dmo (2.3.8-dmo2) unstable; urgency=medium
-
-  * Rebuild against ffmpeg 4.0
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Sun, 22 Apr 2018 15:03:29 +0200
+ -- Aleksey Samoilov <samoilov.lex@gmail.com>  Mon, 30 Apr 2018 02:13:04 +0400
 
 openfx-io-natron-dmo (2.3.8-dmo1) unstable; urgency=medium
 
   * New upstream release.
 
  -- Christian Marillat <marillat@deb-multimedia.org>  Thu, 22 Mar 2018 08:27:45 +0100
-
-openfx-io-natron-dmo (2.3.7-dmo1) unstable; urgency=medium
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Fri, 16 Mar 2018 15:52:00 +0100
-
-openfx-io-natron-dmo (2.3.4-dmo3) unstable; urgency=medium
-
-  * Rebuild against libopenexr23
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Mon, 12 Mar 2018 08:03:11 +0100
-
-openfx-io-natron-dmo (2.3.4-dmo2) unstable; urgency=medium
-
-  * Rebuild against libilmbase23
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Sun, 07 Jan 2018 02:18:39 +0100
-
-openfx-io-natron-dmo (2.3.4-dmo1) unstable; urgency=medium
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Tue, 12 Dec 2017 01:40:35 +0100
-
-openfx-io-natron-dmo (2.3.3-dmo1) unstable; urgency=medium
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Thu, 09 Nov 2017 08:21:11 +0100
-
-openfx-io-natron-dmo (2.3.2-dmo1) unstable; urgency=medium
-
-  * New upstream bugfix release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Mon, 14 Aug 2017 09:10:35 +0200
-
-openfx-io-natron-dmo (2.3.1-dmo1) unstable; urgency=medium
-
-  * New upstream release.
-
- -- Christian Marillat <marillat@deb-multimedia.org>  Thu, 27 Jul 2017 10:45:14 +0200
 
 openfx-io-natron-dmo (2.3.0-dmo1) unstable; urgency=medium
 
