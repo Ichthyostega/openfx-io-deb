@@ -29,7 +29,7 @@
 #include <cstdio> // printf
 #endif
 
-#include <GenericOCIO.h>
+#include "GenericOCIO.h"
 
 #include <ofxsProcessing.H>
 #include <ofxsCopier.h>
@@ -178,6 +178,7 @@ private:
                        bool maskmix,
                        double time,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const Image* srcImg,
                        Image* dstImg)
     {
@@ -200,7 +201,7 @@ private:
                       premult,
                       maskmix,
                       time,
-                      renderWindow,
+                      renderWindow, renderScale,
                       srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                       dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
@@ -210,6 +211,7 @@ private:
                        bool maskmix,
                        double time,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const void *srcPixelData,
                        const OfxRectI& srcBounds,
                        PixelComponentEnum srcPixelComponents,
@@ -230,7 +232,7 @@ private:
                       premult,
                       maskmix,
                       time,
-                      renderWindow,
+                      renderWindow, renderScale,
                       srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                       dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
@@ -240,6 +242,7 @@ private:
                        bool maskmix,
                        double time,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const Image* srcImg,
                        void *dstPixelData,
                        const OfxRectI& dstBounds,
@@ -260,7 +263,7 @@ private:
                       premult,
                       maskmix,
                       time,
-                      renderWindow,
+                      renderWindow, renderScale,
                       srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                       dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
@@ -270,6 +273,7 @@ private:
                        bool maskmix,
                        double time,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const void *srcPixelData,
                        const OfxRectI& srcBounds,
                        PixelComponentEnum srcPixelComponents,
@@ -286,6 +290,7 @@ private:
     void setupAndCopy(PixelProcessorFilterBase & processor,
                       double time,
                       const OfxRectI &renderWindow,
+                      const OfxPointD& renderScale,
                       const void *srcPixelData,
                       const OfxRectI& srcBounds,
                       PixelComponentEnum srcPixelComponents,
@@ -299,7 +304,7 @@ private:
                       BitDepthEnum dstPixelDepth,
                       int dstRowBytes);
 
-    void apply(double time, const OfxRectI& renderWindow, float *pixelData, const OfxRectI& bounds, PixelComponentEnum pixelComponents, int pixelComponentCount, int rowBytes);
+    void apply(double time, const OfxRectI& renderWindow, const OfxPointD& renderScale, float *pixelData, const OfxRectI& bounds, PixelComponentEnum pixelComponents, int pixelComponentCount, int rowBytes);
 
     // do not need to delete these, the ImageEffect is managing them for us
     Clip *_dstClip;
@@ -424,6 +429,7 @@ void
 OCIOLookTransformPlugin::setupAndCopy(PixelProcessorFilterBase & processor,
                                       double time,
                                       const OfxRectI &renderWindow,
+                                      const OfxPointD& renderScale,
                                       const void *srcPixelData,
                                       const OfxRectI& srcBounds,
                                       PixelComponentEnum srcPixelComponents,
@@ -469,7 +475,7 @@ OCIOLookTransformPlugin::setupAndCopy(PixelProcessorFilterBase & processor,
     processor.setSrcImg(srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, 0);
 
     // set the render window
-    processor.setRenderWindow(renderWindow);
+    processor.setRenderWindow(renderWindow, renderScale);
 
     bool premult = _premult->getValueAtTime(time);
     int premultChannel = _premultChannel->getValueAtTime(time);
@@ -486,6 +492,7 @@ OCIOLookTransformPlugin::copyPixelData(bool unpremult,
                                        bool maskmix,
                                        double time,
                                        const OfxRectI& renderWindow,
+                                       const OfxPointD& renderScale,
                                        const void *srcPixelData,
                                        const OfxRectI& srcBounds,
                                        PixelComponentEnum srcPixelComponents,
@@ -507,39 +514,39 @@ OCIOLookTransformPlugin::copyPixelData(bool unpremult,
         return;
     }
     if (!unpremult && !premult && !maskmix) {
-        copyPixels(*this, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+        copyPixels(*this, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     } else if (unpremult && !premult && !maskmix) {
         if (dstPixelComponents == ePixelComponentRGBA) {
             PixelCopierUnPremult<float, 4, 1, float, 4, 1> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         } else if (dstPixelComponents == ePixelComponentRGB) {
             PixelCopierUnPremult<float, 3, 1, float, 3, 1> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         }  else if (dstPixelComponents == ePixelComponentAlpha) {
             PixelCopierUnPremult<float, 1, 1, float, 1, 1> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         } // switch
     } else if (!unpremult && !premult && maskmix) {
         if (dstPixelComponents == ePixelComponentRGBA) {
             PixelCopierMaskMix<float, 4, 1, true> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         } else if (dstPixelComponents == ePixelComponentRGB) {
             PixelCopierMaskMix<float, 3, 1, true> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         }  else if (dstPixelComponents == ePixelComponentAlpha) {
             PixelCopierMaskMix<float, 1, 1, true> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         } // switch
     } else if (!unpremult && premult && maskmix) {
         if (dstPixelComponents == ePixelComponentRGBA) {
             PixelCopierPremultMaskMix<float, 4, 1, float, 4, 1> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         } else if (dstPixelComponents == ePixelComponentRGB) {
             PixelCopierPremultMaskMix<float, 3, 1, float, 3, 1> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         }  else if (dstPixelComponents == ePixelComponentAlpha) {
             PixelCopierPremultMaskMix<float, 1, 1, float, 1, 1> fred(*this);
-            setupAndCopy(fred, time, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            setupAndCopy(fred, time, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         } // switch
     } else {
         assert(false); // should never happen
@@ -611,6 +618,7 @@ OCIOLookTransformPlugin::getProcessor(OfxTime time,
 void
 OCIOLookTransformPlugin::apply(double time,
                                const OfxRectI& renderWindow,
+                               const OfxPointD& renderScale,
                                float *pixelData,
                                const OfxRectI& bounds,
                                PixelComponentEnum pixelComponents,
@@ -642,7 +650,7 @@ OCIOLookTransformPlugin::apply(double time,
 
 
     // set the render window
-    processor.setRenderWindow(renderWindow);
+    processor.setRenderWindow(renderWindow, renderScale);
 
     // Call the base class process member, this will call the derived templated process code
     processor.process();
@@ -720,14 +728,7 @@ OCIOLookTransformPlugin::renderGPU(const RenderArguments &args)
         return;
     }
 
-    if ( (srcImg->getRenderScale().x != args.renderScale.x) ||
-         ( srcImg->getRenderScale().y != args.renderScale.y) ||
-         ( srcImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(srcImg, args);
 
     auto_ptr<Texture> dstImg( _dstClip->loadTexture(args.time) );
     if ( !dstImg.get() ) {
@@ -735,14 +736,7 @@ OCIOLookTransformPlugin::renderGPU(const RenderArguments &args)
 
         return;
     }
-    if ( (dstImg->getRenderScale().x != args.renderScale.x) ||
-         ( dstImg->getRenderScale().y != args.renderScale.y) ||
-         ( dstImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(dstImg, args);
 
     BitDepthEnum srcBitDepth = srcImg->getPixelDepth();
     PixelComponentEnum srcComponents = srcImg->getPixelComponents();
@@ -848,14 +842,7 @@ OCIOLookTransformPlugin::render(const RenderArguments &args)
 
         return;
     }
-    if ( (srcImg->getRenderScale().x != args.renderScale.x) ||
-         ( srcImg->getRenderScale().y != args.renderScale.y) ||
-         ( srcImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(srcImg, args);
 
     BitDepthEnum srcBitDepth = srcImg->getPixelDepth();
     PixelComponentEnum srcComponents = srcImg->getPixelComponents();
@@ -872,14 +859,7 @@ OCIOLookTransformPlugin::render(const RenderArguments &args)
 
         return;
     }
-    if ( (dstImg->getRenderScale().x != args.renderScale.x) ||
-         ( dstImg->getRenderScale().y != args.renderScale.y) ||
-         ( dstImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(dstImg, args);
 
     BitDepthEnum dstBitDepth = dstImg->getPixelDepth();
     if ( (dstBitDepth != eBitDepthFloat) || (dstBitDepth != srcBitDepth) ) {
@@ -924,13 +904,13 @@ OCIOLookTransformPlugin::render(const RenderArguments &args)
     _premult->getValueAtTime(args.time, premult);
 
     // copy renderWindow to the temporary image
-    copyPixelData(premult, false, false, args.time, args.renderWindow, srcPixelData, bounds, pixelComponents, pixelComponentCount, bitDepth, srcRowBytes, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, bitDepth, tmpRowBytes);
+    copyPixelData(premult, false, false, args.time, args.renderWindow, args.renderScale, srcPixelData, bounds, pixelComponents, pixelComponentCount, bitDepth, srcRowBytes, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, bitDepth, tmpRowBytes);
 
     ///do the color-space conversion
-    apply(args.time, args.renderWindow, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, tmpRowBytes);
+    apply(args.time, args.renderWindow, args.renderScale, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, tmpRowBytes);
 
     // copy the color-converted window and apply masking
-    copyPixelData( false, premult, true, args.time, args.renderWindow, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, bitDepth, tmpRowBytes, dstImg.get() );
+    copyPixelData( false, premult, true, args.time, args.renderWindow, args.renderScale, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, bitDepth, tmpRowBytes, dstImg.get() );
 } // OCIOLookTransformPlugin::render
 
 bool

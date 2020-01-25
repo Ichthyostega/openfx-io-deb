@@ -208,7 +208,7 @@ private:
     void displayCheck(double time);
     void viewCheck(double time, bool setDefaultIfInvalid = false);
 
-    void apply(double time, const OfxRectI& renderWindow, float *pixelData, const OfxRectI& bounds, PixelComponentEnum pixelComponents, int pixelComponentCount, int rowBytes);
+    void apply(double time, const OfxRectI& renderWindow, const OfxPointD& renderScale, float *pixelData, const OfxRectI& bounds, PixelComponentEnum pixelComponents, int pixelComponentCount, int rowBytes);
 
     OCIO::ConstProcessorRcPtr getProcessor(OfxTime time);
 
@@ -217,6 +217,7 @@ private:
                        int premultChannel,
                        double time,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const Image* srcImg,
                        Image* dstImg)
     {
@@ -239,7 +240,7 @@ private:
                       premult,
                       premultChannel,
                       time,
-                      renderWindow,
+                      renderWindow, renderScale,
                       srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                       dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
@@ -249,6 +250,7 @@ private:
                        int premultChannel,
                        double time,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const void *srcPixelData,
                        const OfxRectI& srcBounds,
                        PixelComponentEnum srcPixelComponents,
@@ -269,7 +271,7 @@ private:
                       premult,
                       premultChannel,
                       time,
-                      renderWindow,
+                      renderWindow, renderScale,
                       srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                       dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
@@ -279,6 +281,7 @@ private:
                        int premultChannel,
                        double time,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const Image* srcImg,
                        void *dstPixelData,
                        const OfxRectI& dstBounds,
@@ -299,7 +302,7 @@ private:
                       premult,
                       premultChannel,
                       time,
-                      renderWindow,
+                      renderWindow, renderScale,
                       srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                       dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
@@ -309,6 +312,7 @@ private:
                        int premultChannel,
                        double time,
                        const OfxRectI &renderWindow,
+                       const OfxPointD& renderScale,
                        const void *srcPixelData,
                        const OfxRectI& srcBounds,
                        PixelComponentEnum srcPixelComponents,
@@ -325,6 +329,7 @@ private:
     void setupAndCopy(PixelProcessorFilterBase & processor,
                       double time,
                       const OfxRectI &renderWindow,
+                      const OfxPointD& renderScale,
                       const void *srcPixelData,
                       const OfxRectI& srcBounds,
                       PixelComponentEnum srcPixelComponents,
@@ -524,6 +529,7 @@ void
 OCIODisplayPlugin::setupAndCopy(PixelProcessorFilterBase & processor,
                                 double time,
                                 const OfxRectI &renderWindow,
+                                const OfxPointD& renderScale,
                                 const void *srcPixelData,
                                 const OfxRectI& srcBounds,
                                 PixelComponentEnum srcPixelComponents,
@@ -552,7 +558,7 @@ OCIODisplayPlugin::setupAndCopy(PixelProcessorFilterBase & processor,
     processor.setSrcImg(srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, 0);
 
     // set the render window
-    processor.setRenderWindow(renderWindow);
+    processor.setRenderWindow(renderWindow, renderScale);
 
     bool premult;
     int premultChannel;
@@ -570,6 +576,7 @@ OCIODisplayPlugin::copyPixelData(bool unpremult,
                                  int premultChannel,
                                  double time,
                                  const OfxRectI& renderWindow,
+                                 const OfxPointD& renderScale,
                                  const void *srcPixelData,
                                  const OfxRectI& srcBounds,
                                  PixelComponentEnum srcPixelComponents,
@@ -591,26 +598,26 @@ OCIODisplayPlugin::copyPixelData(bool unpremult,
         return;
     }
     if ( ( (!unpremult && !premult) || (unpremult && premult) ) ) {
-        copyPixels(*this, renderWindow,
+        copyPixels(*this, renderWindow, renderScale,
                    srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                    dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     } else if (unpremult && !premult) {
         if (dstPixelComponents == ePixelComponentRGBA) {
             PixelCopierUnPremult<float, 4, 1, float, 4, 1> fred(*this);
             fred.setPremultMaskMix(true, premultChannel, 1.);
-            setupAndCopy(fred, time, renderWindow,
+            setupAndCopy(fred, time, renderWindow, renderScale,
                          srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                          dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         } else if (dstPixelComponents == ePixelComponentRGB) {
             PixelCopierUnPremult<float, 3, 1, float, 3, 1> fred(*this);
             fred.setPremultMaskMix(true, premultChannel, 1.);
-            setupAndCopy(fred, time, renderWindow,
+            setupAndCopy(fred, time, renderWindow, renderScale,
                          srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                          dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         }  else if (dstPixelComponents == ePixelComponentAlpha) {
             PixelCopierUnPremult<float, 1, 1, float, 1, 1> fred(*this);
             fred.setPremultMaskMix(true, premultChannel, 1.);
-            setupAndCopy(fred, time, renderWindow,
+            setupAndCopy(fred, time, renderWindow, renderScale,
                          srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                          dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         } // switch
@@ -745,6 +752,7 @@ OCIODisplayPlugin::getProcessor(OfxTime time)
 void
 OCIODisplayPlugin::apply(double time,
                          const OfxRectI& renderWindow,
+                         const OfxPointD& renderScale,
                          float *pixelData,
                          const OfxRectI& bounds,
                          PixelComponentEnum pixelComponents,
@@ -767,7 +775,7 @@ OCIODisplayPlugin::apply(double time,
     processor.setProcessor( getProcessor(time) );
 
     // set the render window
-    processor.setRenderWindow(renderWindow);
+    processor.setRenderWindow(renderWindow, renderScale);
 
     // Call the base class process member, this will call the derived templated process code
     processor.process();
@@ -855,14 +863,7 @@ OCIODisplayPlugin::renderGPU(const RenderArguments &args)
         return;
     }
 
-    if ( (srcImg->getRenderScale().x != args.renderScale.x) ||
-         ( srcImg->getRenderScale().y != args.renderScale.y) ||
-         ( srcImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(srcImg, args);
 
     auto_ptr<Texture> dstImg( _dstClip->loadTexture(args.time) );
     if ( !dstImg.get() ) {
@@ -870,14 +871,7 @@ OCIODisplayPlugin::renderGPU(const RenderArguments &args)
 
         return;
     }
-    if ( (dstImg->getRenderScale().x != args.renderScale.x) ||
-         ( dstImg->getRenderScale().y != args.renderScale.y) ||
-         ( dstImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(dstImg, args);
 
     BitDepthEnum srcBitDepth = srcImg->getPixelDepth();
     PixelComponentEnum srcComponents = srcImg->getPixelComponents();
@@ -970,14 +964,7 @@ OCIODisplayPlugin::render(const RenderArguments &args)
 
         return;
     }
-    if ( (srcImg->getRenderScale().x != args.renderScale.x) ||
-         ( srcImg->getRenderScale().y != args.renderScale.y) ||
-         ( srcImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(srcImg, args);
 
     BitDepthEnum srcBitDepth = srcImg->getPixelDepth();
     PixelComponentEnum srcComponents = srcImg->getPixelComponents();
@@ -988,14 +975,7 @@ OCIODisplayPlugin::render(const RenderArguments &args)
 
         return;
     }
-    if ( (dstImg->getRenderScale().x != args.renderScale.x) ||
-         ( dstImg->getRenderScale().y != args.renderScale.y) ||
-         ( dstImg->getField() != args.fieldToRender) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(dstImg, args);
 
     BitDepthEnum dstBitDepth = dstImg->getPixelDepth();
     if ( (dstBitDepth != eBitDepthFloat) || (dstBitDepth != srcBitDepth) ) {
@@ -1042,13 +1022,13 @@ OCIODisplayPlugin::render(const RenderArguments &args)
     _premultChannel->getValueAtTime(args.time, premultChannel);
 
     // copy renderWindow to the temporary image
-    copyPixelData(premult, false, premultChannel, args.time, args.renderWindow, srcPixelData, bounds, pixelComponents, pixelComponentCount, bitDepth, srcRowBytes, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, bitDepth, tmpRowBytes);
+    copyPixelData(premult, false, premultChannel, args.time, args.renderWindow, args.renderScale, srcPixelData, bounds, pixelComponents, pixelComponentCount, bitDepth, srcRowBytes, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, bitDepth, tmpRowBytes);
 
     ///do the color-space conversion
-    apply(args.time, args.renderWindow, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, tmpRowBytes);
+    apply(args.time, args.renderWindow, args.renderScale, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, tmpRowBytes);
 
     // copy the color-converted window and apply masking
-    copyPixelData( false, premult, premultChannel, args.time, args.renderWindow, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, bitDepth, tmpRowBytes, dstImg.get() );
+    copyPixelData( false, premult, premultChannel, args.time, args.renderWindow, args.renderScale, tmpPixelData, args.renderWindow, pixelComponents, pixelComponentCount, bitDepth, tmpRowBytes, dstImg.get() );
 } // OCIODisplayPlugin::render
 
 void

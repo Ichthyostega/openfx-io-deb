@@ -373,8 +373,10 @@ public:
         // TODO: any pre-computation goes here (such as computing a LUT)
     }
 
-    void multiThreadProcessImages(OfxRectI procWindow)
+    void multiThreadProcessImages(const OfxRectI& procWindow, const OfxPointD& rs)
     {
+        // renderScale is handled upstream, see toCanonicalMat
+        unused(rs);
         const bool processR = _processR && (nComponents != 1);
         const bool processG = _processG && (nComponents >= 2);
         const bool processB = _processB && (nComponents >= 3);
@@ -466,7 +468,7 @@ public:
                     OfxPointD p;
                     p_pixel.x = x;
                     p_pixel.y = y;
-                    Coords::toCanonical(p_pixel, _dstImg->getRenderScale(), _dstImg->getPixelAspectRatio(), &p);
+                    Coords::toCanonical(p_pixel, rs, _dstImg->getPixelAspectRatio(), &p);
 
                     double t = ofxsRampFunc(_point0, nx, ny, _type, p);
 
@@ -549,6 +551,7 @@ public:
         , _rampInteractOpen(NULL)
         , _rampInteractive(NULL)
     {
+
         _dstClip = fetchClip(kOfxImageEffectOutputClipName);
         assert( _dstClip && (!_dstClip->isConnected() || _dstClip->getPixelComponents() == ePixelComponentRGB ||
                              _dstClip->getPixelComponents() == ePixelComponentRGBA ||
@@ -756,21 +759,11 @@ SeNoisePlugin::setupAndProcess(SeNoiseProcessorBase &processor,
         setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong depth or components");
         throwSuiteStatusException(kOfxStatFailed);
     }
-    if ( (dst->getRenderScale().x != args.renderScale.x) ||
-         ( dst->getRenderScale().y != args.renderScale.y) ||
-         ( ( dst->getField() != eFieldNone) /* for DaVinci Resolve */ && ( dst->getField() != args.fieldToRender) ) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-    }
+    checkBadRenderScaleOrField(dst, args);
     auto_ptr<const Image> src( ( _srcClip && _srcClip->isConnected() ) ?
                                     _srcClip->fetchImage(time) : 0 );
     if ( src.get() ) {
-        if ( (src->getRenderScale().x != args.renderScale.x) ||
-             ( src->getRenderScale().y != args.renderScale.y) ||
-             ( ( src->getField() != eFieldNone) /* for DaVinci Resolve */ && ( src->getField() != args.fieldToRender) ) ) {
-            setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-            throwSuiteStatusException(kOfxStatFailed);
-        }
+        checkBadRenderScaleOrField(src, args);
         BitDepthEnum srcBitDepth      = src->getPixelDepth();
         PixelComponentEnum srcComponents = src->getPixelComponents();
         if ( (srcBitDepth != dstBitDepth) || (srcComponents != dstComponents) ) {
@@ -780,12 +773,7 @@ SeNoisePlugin::setupAndProcess(SeNoiseProcessorBase &processor,
     bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(time) ) && _maskClip && _maskClip->isConnected() );
     auto_ptr<const Image> mask(doMasking ? _maskClip->fetchImage(time) : 0);
     if ( mask.get() ) {
-        if ( (mask->getRenderScale().x != args.renderScale.x) ||
-             ( mask->getRenderScale().y != args.renderScale.y) ||
-             ( ( mask->getField() != eFieldNone) /* for DaVinci Resolve */ && ( mask->getField() != args.fieldToRender) ) ) {
-            setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-            throwSuiteStatusException(kOfxStatFailed);
-        }
+        checkBadRenderScaleOrField(mask, args);
     }
     if (doMasking) {
         bool maskInvert;
@@ -796,7 +784,7 @@ SeNoisePlugin::setupAndProcess(SeNoiseProcessorBase &processor,
 
     processor.setDstImg( dst.get() );
     processor.setSrcImg( src.get() );
-    processor.setRenderWindow(args.renderWindow);
+    processor.setRenderWindow(args.renderWindow, args.renderScale);
 
     // fetch noise parameter values
     int noiseType_i;
@@ -936,8 +924,8 @@ SeNoisePlugin::render(const RenderArguments &args)
     // instantiate the render code based on the pixel depth of the dst clip
     PixelComponentEnum dstComponents  = _dstClip->getPixelComponents();
 
-    assert( kSupportsMultipleClipPARs   || !_srcClip || _srcClip->getPixelAspectRatio() == _dstClip->getPixelAspectRatio() );
-    assert( kSupportsMultipleClipDepths || !_srcClip || _srcClip->getPixelDepth()       == _dstClip->getPixelDepth() );
+    assert( kSupportsMultipleClipPARs   || !_srcClip || !_srcClip->isConnected() || _srcClip->getPixelAspectRatio() == _dstClip->getPixelAspectRatio() );
+    assert( kSupportsMultipleClipDepths || !_srcClip || !_srcClip->isConnected() || _srcClip->getPixelDepth()       == _dstClip->getPixelDepth() );
     assert(dstComponents == ePixelComponentRGBA || dstComponents == ePixelComponentRGB || dstComponents == ePixelComponentXY || dstComponents == ePixelComponentAlpha);
     // do the rendering
     switch (dstComponents) {

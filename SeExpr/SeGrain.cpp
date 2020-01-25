@@ -316,8 +316,10 @@ public:
         // TODO: any pre-computation goes here (such as computing a LUT)
     }
 
-    void multiThreadProcessImages(OfxRectI procWindow)
+    void multiThreadProcessImages(const OfxRectI& procWindow, const OfxPointD& rs)
     {
+        // renderScale is handled upstream, see sizeMat
+        unused(rs);
         const int octaves = 2;
         const double lacunarity = 2.;
         const double gain = 0.5;
@@ -378,6 +380,7 @@ public:
         , _maskApply(NULL)
         , _maskInvert(NULL)
     {
+
         _dstClip = fetchClip(kOfxImageEffectOutputClipName);
         assert( _dstClip && (!_dstClip->isConnected() || _dstClip->getPixelComponents() == ePixelComponentRGB ||
                              _dstClip->getPixelComponents() == ePixelComponentRGBA ||
@@ -501,21 +504,11 @@ SeGrainPlugin::setupAndProcess(SeGrainProcessorBase &processor,
         setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong depth or components");
         throwSuiteStatusException(kOfxStatFailed);
     }
-    if ( (dst->getRenderScale().x != args.renderScale.x) ||
-         ( dst->getRenderScale().y != args.renderScale.y) ||
-         ( ( dst->getField() != eFieldNone) /* for DaVinci Resolve */ && ( dst->getField() != args.fieldToRender) ) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-    }
+    checkBadRenderScaleOrField(dst, args);
     auto_ptr<const Image> src( ( _srcClip && _srcClip->isConnected() ) ?
                                     _srcClip->fetchImage(time) : 0 );
     if ( src.get() ) {
-        if ( (src->getRenderScale().x != args.renderScale.x) ||
-             ( src->getRenderScale().y != args.renderScale.y) ||
-             ( ( src->getField() != eFieldNone) /* for DaVinci Resolve */ && ( src->getField() != args.fieldToRender) ) ) {
-            setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-            throwSuiteStatusException(kOfxStatFailed);
-        }
+        checkBadRenderScaleOrField(src, args);
         BitDepthEnum srcBitDepth      = src->getPixelDepth();
         PixelComponentEnum srcComponents = src->getPixelComponents();
         if ( (srcBitDepth != dstBitDepth) || (srcComponents != dstComponents) ) {
@@ -525,12 +518,7 @@ SeGrainPlugin::setupAndProcess(SeGrainProcessorBase &processor,
     bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(time) ) && _maskClip && _maskClip->isConnected() );
     auto_ptr<const Image> mask(doMasking ? _maskClip->fetchImage(time) : 0);
     if ( mask.get() ) {
-        if ( (mask->getRenderScale().x != args.renderScale.x) ||
-             ( mask->getRenderScale().y != args.renderScale.y) ||
-             ( ( mask->getField() != eFieldNone) /* for DaVinci Resolve */ && ( mask->getField() != args.fieldToRender) ) ) {
-            setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-            throwSuiteStatusException(kOfxStatFailed);
-        }
+        checkBadRenderScaleOrField(mask, args);
     }
     if (doMasking) {
         bool maskInvert;
@@ -541,7 +529,7 @@ SeGrainPlugin::setupAndProcess(SeGrainProcessorBase &processor,
 
     processor.setDstImg( dst.get() );
     processor.setSrcImg( src.get() );
-    processor.setRenderWindow(args.renderWindow);
+    processor.setRenderWindow(args.renderWindow, args.renderScale);
 
     // fetch grain parameter values
 
@@ -576,8 +564,8 @@ SeGrainPlugin::render(const RenderArguments &args)
     // instantiate the render code based on the pixel depth of the dst clip
     PixelComponentEnum dstComponents  = _dstClip->getPixelComponents();
 
-    assert( kSupportsMultipleClipPARs   || !_srcClip || _srcClip->getPixelAspectRatio() == _dstClip->getPixelAspectRatio() );
-    assert( kSupportsMultipleClipDepths || !_srcClip || _srcClip->getPixelDepth()       == _dstClip->getPixelDepth() );
+    assert( kSupportsMultipleClipPARs   || !_srcClip || !_srcClip->isConnected() || _srcClip->getPixelAspectRatio() == _dstClip->getPixelAspectRatio() );
+    assert( kSupportsMultipleClipDepths || !_srcClip || !_srcClip->isConnected() || _srcClip->getPixelDepth()       == _dstClip->getPixelDepth() );
     assert(dstComponents == ePixelComponentRGBA || dstComponents == ePixelComponentRGB || dstComponents == ePixelComponentXY || dstComponents == ePixelComponentAlpha);
     // do the rendering
     switch (dstComponents) {

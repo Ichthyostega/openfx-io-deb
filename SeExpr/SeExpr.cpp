@@ -156,7 +156,7 @@ OFXS_NAMESPACE_ANONYMOUS_ENTER
     "- 3: Keys - (Catmull-Rom / Hermite spline) Some smoothing, plus minor sharpening (\\*)\n" \
     "- 4: Simon - Some smoothing, plus medium sharpening (\\*)\n" \
     "- 5: Rifman - Some smoothing, plus significant sharpening (\\*)\n" \
-    "- 6: Mitchell - Some smoothing, plus blurring to hide pixelation (\\*\\+)\n" \
+    "- 6: Mitchell - Some smoothing, plus blurring to hide pixelation (\\*)(\\+)\n" \
     "- 7: Parzen - (cubic B-spline) Greatest smoothing of all filters (\\+)\n" \
     "- 8: notch - Flat smoothing (which tends to hide moire' patterns) (\\+)\n" \
     "\n" \
@@ -239,9 +239,9 @@ OFXS_NAMESPACE_ANONYMOUS_ENTER
     "### Multi-instruction expressions\n" \
     "\n" \
     "If an expression spans multiple instructions (usually written one per line), " \
-    "each instruction must end with a semicolumn (';'). The last instruction " \
+    "each instruction must end with a semicolon (';'). The last instruction " \
     "of the expression is considered as the final value of the pixel (a RGB vector or an Alpha scalar, depending " \
-    "on the script), and must not be terminated by a semicolumn.\n" \
+    "on the script), and must not be terminated by a semicolon.\n" \
     "More documentation is available on the [SeExpr website](http://www.disneyanimation.com/technology/seexpr.html).\n" \
     "\n" \
     "### Accessing pixel values from other frames\n" \
@@ -330,7 +330,7 @@ enum RegionOfDefinitionEnum
 
 #define kParamOutputComponents "outputComponents"
 #define kParamOutputComponentsLabel "Output components"
-#define kParamOutputComponentsHint "Specify what components to output. In RGB only, the alpha script will not be executed. Similarily, in alpha only, the RGB script " \
+#define kParamOutputComponentsHint "Specify what components to output. In RGB only, the alpha script will not be executed. Similarly, in alpha only, the RGB script " \
     "will not be executed."
 #define kParamOutputComponentsOptionRGBA "RGBA"
 #define kParamOutputComponentsOptionRGB "RGB"
@@ -449,10 +449,6 @@ isSpaces(const string& s)
 {
     return s.find_first_not_of(" \t\n\v\f\r") == string::npos;
 }
-
-template<typename T>
-static inline void
-unused(const T&) {}
 
 class SeExprProcessorBase;
 
@@ -1972,14 +1968,7 @@ SeExprPlugin::setupAndProcess(SeExprProcessorBase & processor,
 
         return;
     }
-    if ( (dst->getRenderScale().x != args.renderScale.x) ||
-         ( dst->getRenderScale().y != args.renderScale.y) ||
-         ( ( dst->getField() != eFieldNone) /* for DaVinci Resolve */ && ( dst->getField() != args.fieldToRender) ) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(dst, args);
 
     string rExpr, gExpr, bExpr, aExpr;
     string rgbScript, alphaScript;

@@ -906,6 +906,7 @@ GenericReaderPlugin::getStartingTime() const
 
 void
 GenericReaderPlugin::copyPixelData(const OfxRectI& renderWindow,
+                                   const OfxPointD& renderScale,
                                    const void *srcPixelData,
                                    const OfxRectI& srcBounds,
                                    PixelComponentEnum srcPixelComponents,
@@ -924,7 +925,7 @@ GenericReaderPlugin::copyPixelData(const OfxRectI& renderWindow,
     assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2);
 
 #ifdef GENERIC_READER_USE_MULTI_THREAD
-    copyPixels(*this, renderWindow,
+    copyPixels(*this, renderWindow, renderScale,
                srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 #else
@@ -1079,6 +1080,7 @@ buildMipMapLevel(ImageEffect* instance,
 
 void
 GenericReaderPlugin::scalePixelData(const OfxRectI& originalRenderWindow,
+                                    const OfxPointD& renderScale,
                                     const OfxRectI& renderWindow,
                                     unsigned int levels,
                                     const void* srcPixelData,
@@ -1094,6 +1096,7 @@ GenericReaderPlugin::scalePixelData(const OfxRectI& originalRenderWindow,
                                     const OfxRectI& dstBounds,
                                     int dstRowBytes)
 {
+    unused(renderScale);
     assert(srcPixelData && dstPixelData);
 
     // do the rendering
@@ -1155,6 +1158,7 @@ GenericReaderPlugin::scalePixelData(const OfxRectI& originalRenderWindow,
 static void
 setupAndFillWithBlack(PixelProcessorFilterBase & processor,
                       const OfxRectI &renderWindow,
+                      const OfxPointD& renderScale,
                       void *dstPixelData,
                       const OfxRectI& dstBounds,
                       PixelComponentEnum dstPixelComponents,
@@ -1166,7 +1170,7 @@ setupAndFillWithBlack(PixelProcessorFilterBase & processor,
     processor.setDstImg(dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstPixelDepth, dstRowBytes);
 
     // set the render window
-    processor.setRenderWindow(renderWindow);
+    processor.setRenderWindow(renderWindow, renderScale);
 
     // Call the base class process member, this will call the derived templated process code
     processor.process();
@@ -1174,6 +1178,7 @@ setupAndFillWithBlack(PixelProcessorFilterBase & processor,
 
 void
 GenericReaderPlugin::fillWithBlack(const OfxRectI &renderWindow,
+                                   const OfxPointD& renderScale,
                                    void *dstPixelData,
                                    const OfxRectI& dstBounds,
                                    PixelComponentEnum dstPixelComponents,
@@ -1182,13 +1187,14 @@ GenericReaderPlugin::fillWithBlack(const OfxRectI &renderWindow,
                                    int dstRowBytes)
 {
     BlackFiller<float> fred(*this, dstPixelComponentCount);
-    setupAndFillWithBlack(fred, renderWindow, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    setupAndFillWithBlack(fred, renderWindow, renderScale, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
 
 static void
 setupAndProcess(PixelProcessorFilterBase & processor,
                 int premultChannel,
                 const OfxRectI &renderWindow,
+                const OfxPointD& renderScale,
                 const void *srcPixelData,
                 const OfxRectI& srcBounds,
                 PixelComponentEnum srcPixelComponents,
@@ -1216,7 +1222,7 @@ setupAndProcess(PixelProcessorFilterBase & processor,
     processor.setSrcImg(srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, 0);
 
     // set the render window
-    processor.setRenderWindow(renderWindow);
+    processor.setRenderWindow(renderWindow, renderScale);
 
     processor.setPremultMaskMix(true, premultChannel, 1.);
 
@@ -1226,6 +1232,7 @@ setupAndProcess(PixelProcessorFilterBase & processor,
 
 void
 GenericReaderPlugin::unPremultPixelData(const OfxRectI &renderWindow,
+                                        const OfxPointD& renderScale,
                                         const void *srcPixelData,
                                         const OfxRectI& srcBounds,
                                         PixelComponentEnum srcPixelComponents,
@@ -1254,7 +1261,7 @@ GenericReaderPlugin::unPremultPixelData(const OfxRectI &renderWindow,
             return;
         }
         PixelCopierUnPremult<float, 4, 1, float, 4, 1> fred(*this);
-        setupAndProcess(fred, 3, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+        setupAndProcess(fred, 3, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     } else {
         ///other pixel components means you want to copy only...
         assert(false);
@@ -1263,6 +1270,7 @@ GenericReaderPlugin::unPremultPixelData(const OfxRectI &renderWindow,
 
 void
 GenericReaderPlugin::premultPixelData(const OfxRectI &renderWindow,
+                                      const OfxPointD& renderScale,
                                       const void *srcPixelData,
                                       const OfxRectI& srcBounds,
                                       PixelComponentEnum srcPixelComponents,
@@ -1292,7 +1300,7 @@ GenericReaderPlugin::premultPixelData(const OfxRectI &renderWindow,
             return;
         }
         PixelCopierPremult<float, 4, 1, float, 4, 1> fred(*this);
-        setupAndProcess(fred, 3, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+        setupAndProcess(fred, 3, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcPixelDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     } else {
         ///other pixel components means you want to copy only...
         assert(false);
@@ -1478,14 +1486,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
 
     const std::vector<Image*>& outputImages = outputImagesHolder.getOutputPlanes();
     for (std::size_t i = 0; i < outputImages.size(); ++i) {
-        if ( (outputImages[i]->getRenderScale().x != args.renderScale.x) ||
-             ( outputImages[i]->getRenderScale().y != args.renderScale.y) ||
-             ( outputImages[i]->getField() != args.fieldToRender) ) {
-            setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-            throwSuiteStatusException(kOfxStatFailed);
-
-            return;
-        }
+        checkBadRenderScaleOrField(outputImages[i], args);
 
         PlaneToRender plane;
         void* dstPixelData = NULL;
@@ -1559,7 +1560,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
     switch (getSequenceTimeRet) {
     case eGetSequenceTimeBlack:
         for (std::list<PlaneToRender>::iterator it = planes.begin(); it != planes.end(); ++it) {
-            fillWithBlack(args.renderWindow, it->pixelData, firstBounds, it->comps, it->numChans, firstDepth, it->rowBytes);
+            fillWithBlack(args.renderWindow, args.renderScale, it->pixelData, firstBounds, it->comps, it->numChans, firstDepth, it->rowBytes);
         }
 
         return;
@@ -1603,7 +1604,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
     case eGetFileNameBlack:
         clearPersistentMessage();
         for (std::list<PlaneToRender>::iterator it = planes.begin(); it != planes.end(); ++it) {
-            fillWithBlack(args.renderWindow, it->pixelData, firstBounds, it->comps, it->numChans, firstDepth, it->rowBytes);
+            fillWithBlack(args.renderWindow, args.renderScale, it->pixelData, firstBounds, it->comps, it->numChans, firstDepth, it->rowBytes);
         }
 
         return;
@@ -1636,7 +1637,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
             // should never happen: it should return at least the full res frame
             assert(false);
             for (std::list<PlaneToRender>::iterator it = planes.begin(); it != planes.end(); ++it) {
-                fillWithBlack(args.renderWindow, it->pixelData, firstBounds, it->comps, it->numChans, firstDepth, it->rowBytes);
+                fillWithBlack(args.renderWindow, args.renderScale, it->pixelData, firstBounds, it->comps, it->numChans, firstDepth, it->rowBytes);
             }
 
             return;
@@ -1669,7 +1670,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
 
     if ( filename.empty() || !checkIfFileExists(filename) ) {
         for (std::list<PlaneToRender>::iterator it = planes.begin(); it != planes.end(); ++it) {
-            fillWithBlack(args.renderWindow, it->pixelData, firstBounds, it->comps, it->numChans, firstDepth, it->rowBytes);
+            fillWithBlack(args.renderWindow, args.renderScale, it->pixelData, firstBounds, it->comps, it->numChans, firstDepth, it->rowBytes);
         }
 
         return;
@@ -1789,9 +1790,9 @@ GenericReaderPlugin::render(const RenderArguments &args)
             DBG( std::printf("decode (to dst)\n") );
 
             if (!_isMultiPlanar) {
-                decode(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, args.renderWindow, it->pixelData, firstBounds, it->comps, it->numChans, it->rowBytes);
+                decode(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, args.renderWindow, args.renderScale, it->pixelData, firstBounds, it->comps, it->numChans, it->rowBytes);
             } else {
-                decodePlane(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, args.renderWindow, it->pixelData, firstBounds, it->comps, it->numChans, it->rawComps, it->rowBytes);
+                decodePlane(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, args.renderWindow, args.renderScale, it->pixelData, firstBounds, it->comps, it->numChans, it->rawComps, it->rowBytes);
             }
         } else {
             int pixelBytes;
@@ -1845,9 +1846,9 @@ GenericReaderPlugin::render(const RenderArguments &args)
             DBG( std::printf("decode (to tmp)\n") );
 
             if (!_isMultiPlanar) {
-                decode(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, renderWindowFullRes, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, tmpRowBytes);
+                decode(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, renderWindowFullRes, args.renderScale, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, tmpRowBytes);
             } else {
-                decodePlane(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, renderWindowFullRes, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, it->rawComps, tmpRowBytes);
+                decodePlane(filename, sequenceTime, args.renderView, args.sequentialRenderStatus, renderWindowFullRes, args.renderScale, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, it->rawComps, tmpRowBytes);
             }
 
             if ( abort() ) {
@@ -1860,7 +1861,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
                     assert(remappedComponents == ePixelComponentRGBA);
                     DBG( std::printf("unpremult (tmp in-place)\n") );
                     //tmpPixelData[0] = tmpPixelData[1] = tmpPixelData[2] = tmpPixelData[3] = 0.5;
-                    unPremultPixelData(renderWindowNotRounded, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, firstDepth, tmpRowBytes, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, firstDepth, tmpRowBytes);
+                    unPremultPixelData(renderWindowNotRounded, args.renderScale, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, firstDepth, tmpRowBytes, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, firstDepth, tmpRowBytes);
 
                     if ( abort() ) {
                         return;
@@ -1870,7 +1871,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
                 }
 #ifdef OFX_IO_USING_OCIO
                 DBG( std::printf("OCIO (tmp in-place)\n") );
-                _ocio->apply(args.time, renderWindowFullRes, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, tmpRowBytes);
+                _ocio->apply(args.time, renderWindowFullRes, args.renderScale, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, tmpRowBytes);
 #endif
             }
 
@@ -1879,7 +1880,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
                     // we can write directly to dstPixelData
                     /// adjust the scale to match the given output image
                     DBG( std::printf("scale (no premult, tmp to dst)\n") );
-                    scalePixelData(args.renderWindow, renderWindowNotRounded, (unsigned int)downscaleLevels, tmpPixelData, remappedComponents,
+                    scalePixelData(args.renderWindow, args.renderScale, renderWindowNotRounded, (unsigned int)downscaleLevels, tmpPixelData, remappedComponents,
                                    it->numChans, firstDepth, renderWindowFullRes, tmpRowBytes, it->pixelData,
                                    remappedComponents, it->numChans, firstDepth, firstBounds, it->rowBytes);
                 } else {
@@ -1891,7 +1892,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
 
                     /// adjust the scale to match the given output image
                     DBG( std::printf("scale (tmp to scaled)\n") );
-                    scalePixelData(args.renderWindow, renderWindowNotRounded, (unsigned int)downscaleLevels, tmpPixelData,
+                    scalePixelData(args.renderWindow, args.renderScale, renderWindowNotRounded, (unsigned int)downscaleLevels, tmpPixelData,
                                    remappedComponents, it->numChans, firstDepth,
                                    renderWindowFullRes, tmpRowBytes, scaledPixelData,
                                    remappedComponents, it->numChans, firstDepth,
@@ -1904,7 +1905,7 @@ GenericReaderPlugin::render(const RenderArguments &args)
                     // apply premult
                     DBG( std::printf("premult (scaled to dst)\n") );
                     //scaledPixelData[0] = scaledPixelData[1] = scaledPixelData[2] = 1.; scaledPixelData[3] = 0.5;
-                    premultPixelData(args.renderWindow, scaledPixelData, firstBounds, remappedComponents,  it->numChans, firstDepth, mem2RowBytes, it->pixelData, firstBounds, remappedComponents, it->numChans, firstDepth, it->rowBytes);
+                    premultPixelData(args.renderWindow, args.renderScale, scaledPixelData, firstBounds, remappedComponents,  it->numChans, firstDepth, mem2RowBytes, it->pixelData, firstBounds, remappedComponents, it->numChans, firstDepth, it->rowBytes);
                     //assert(dstPixelDataF[0] == 0.5 && dstPixelDataF[1] == 0.5 && dstPixelDataF[2] == 0.5 && dstPixelDataF[3] == 0.5);
                 }
             } else {
@@ -1912,11 +1913,11 @@ GenericReaderPlugin::render(const RenderArguments &args)
                 if (mustPremult) {
                     DBG( std::printf("premult (no scale, tmp to dst)\n") );
                     //tmpPixelData[0] = tmpPixelData[1] = tmpPixelData[2] = 1.; tmpPixelData[3] = 0.5;
-                    premultPixelData(args.renderWindow, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, firstDepth, tmpRowBytes, it->pixelData, firstBounds, remappedComponents, it->numChans, firstDepth, it->rowBytes);
+                    premultPixelData(args.renderWindow, args.renderScale, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, firstDepth, tmpRowBytes, it->pixelData, firstBounds, remappedComponents, it->numChans, firstDepth, it->rowBytes);
                     //assert(dstPixelDataF[0] == 0.5 && dstPixelDataF[1] == 0.5 && dstPixelDataF[2] == 0.5 && dstPixelDataF[3] == 0.5);
                 } else {
                     DBG( std::printf("copy (no premult no scale, tmp to dst)\n") );
-                    copyPixelData(args.renderWindow, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, firstDepth, tmpRowBytes, it->pixelData, firstBounds, remappedComponents, it->numChans, firstDepth, it->rowBytes);
+                    copyPixelData(args.renderWindow, args.renderScale, tmpPixelData, renderWindowFullRes, remappedComponents, it->numChans, firstDepth, tmpRowBytes, it->pixelData, firstBounds, remappedComponents, it->numChans, firstDepth, it->rowBytes);
                 }
             }
             mem.unlock();
@@ -1930,6 +1931,7 @@ GenericReaderPlugin::decode(const string& /*filename*/,
                             int /*view*/,
                             bool /*isPlayback*/,
                             const OfxRectI& /*renderWindow*/,
+                            const OfxPointD& /*renderScale*/,
                             float */*pixelData*/,
                             const OfxRectI& /*bounds*/,
                             PixelComponentEnum /*pixelComponents*/,
@@ -1945,6 +1947,7 @@ GenericReaderPlugin::decodePlane(const string& /*filename*/,
                                  int /*view*/,
                                  bool /*isPlayback*/,
                                  const OfxRectI& /*renderWindow*/,
+                                 const OfxPointD& /*renderScale*/,
                                  float */*pixelData*/,
                                  const OfxRectI& /*bounds*/,
                                  PixelComponentEnum /*pixelComponents*/,
@@ -2077,7 +2080,7 @@ GenericReaderPlugin::changedFilename(const InstanceChangedArgs &args)
             if (colorSpaceStrLen == 0) {
                 colorSpaceStr = NULL;
             }
-#if OCIO_VERSION_HEX > 0x01000900 // more recent than 1.0.9?
+#if OCIO_VERSION_HEX > 0x01010100 // more recent than 1.1.1?
 #pragma message WARN("OpenColorIO was updated, check that the following code is still necessary")
 #endif
             if (colorSpaceStr) {
@@ -2100,7 +2103,7 @@ GenericReaderPlugin::changedFilename(const InstanceChangedArgs &args)
                     colorSpaceStrLen = 0;
                 }
             }
-            if (colorSpaceStr) {
+            if (colorSpaceStr && colorSpaceStrLen > 0) {
                 assert( _ocio->hasColorspace(colorSpaceStr) ); // parseColorSpaceFromString always returns an existing colorspace
                 // we're lucky
                 _ocio->setInputColorspace(colorSpaceStr);
@@ -2585,8 +2588,9 @@ public:
     }
 
     // and do some processing
-    void multiThreadProcessImages(OfxRectI procWindow)
+    void multiThreadProcessImages(const OfxRectI& procWindow, const OfxPointD& rs)
     {
+        unused(rs);
         assert(nSrcComp == 1 || nSrcComp == 2 || nSrcComp == 3 || nSrcComp == 4);
         assert(nDstComp == 1 || nDstComp == 2 || nDstComp == 3 || nDstComp == 4);
 
@@ -2744,6 +2748,7 @@ void
 convertForDstNComps(ImageEffect* effect,
                     const SRCPIX* srcPixelData,
                     const OfxRectI& renderWindow,
+                    const OfxPointD& renderScale,
                     const OfxRectI& srcBounds,
                     int srcRowBytes,
                     float *dstPixelData,
@@ -2752,7 +2757,7 @@ convertForDstNComps(ImageEffect* effect,
 {
     PixelConverterProcessor<SRCPIX, srcMaxValue, nSrcComp, nDstComp> p(*effect);
     p.setValues(srcPixelData, srcBounds, srcRowBytes, dstPixelData,  dstRowBytes,  dstBounds);
-    p.setRenderWindow(renderWindow);
+    p.setRenderWindow(renderWindow, renderScale);
     p.process();
 }
 
@@ -2761,6 +2766,7 @@ void
 convertForSrcNComps(ImageEffect* effect,
                     const SRCPIX* srcPixelData,
                     const OfxRectI& renderWindow,
+                    const OfxPointD& renderScale,
                     const OfxRectI& srcBounds,
                     int srcRowBytes,
                     float *dstPixelData,
@@ -2770,19 +2776,19 @@ convertForSrcNComps(ImageEffect* effect,
 {
     switch (dstPixelComponents) {
     case ePixelComponentAlpha: {
-        convertForDstNComps<SRCPIX, srcMaxValue, nSrcComp, 1>(effect, srcPixelData, renderWindow, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstRowBytes);
+        convertForDstNComps<SRCPIX, srcMaxValue, nSrcComp, 1>(effect, srcPixelData, renderWindow, renderScale, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstRowBytes);
         break;
     }
     case ePixelComponentXY: {
-        convertForDstNComps<SRCPIX, srcMaxValue, nSrcComp, 2>(effect, srcPixelData, renderWindow, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstRowBytes);
+        convertForDstNComps<SRCPIX, srcMaxValue, nSrcComp, 2>(effect, srcPixelData, renderWindow, renderScale, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstRowBytes);
         break;
     }
     case ePixelComponentRGB: {
-        convertForDstNComps<SRCPIX, srcMaxValue, nSrcComp, 3>(effect, srcPixelData, renderWindow, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstRowBytes);
+        convertForDstNComps<SRCPIX, srcMaxValue, nSrcComp, 3>(effect, srcPixelData, renderWindow, renderScale, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstRowBytes);
         break;
     }
     case ePixelComponentRGBA: {
-        convertForDstNComps<SRCPIX, srcMaxValue, nSrcComp, 4>(effect, srcPixelData, renderWindow, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstRowBytes);
+        convertForDstNComps<SRCPIX, srcMaxValue, nSrcComp, 4>(effect, srcPixelData, renderWindow, renderScale, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstRowBytes);
         break;
     }
     default:
@@ -2796,6 +2802,7 @@ void
 convertForDepth(ImageEffect* effect,
                 const SRCPIX* srcPixelData,
                 const OfxRectI& renderWindow,
+                const OfxPointD& renderScale,
                 const OfxRectI& srcBounds,
                 PixelComponentEnum srcPixelComponents,
                 int srcRowBytes,
@@ -2806,16 +2813,16 @@ convertForDepth(ImageEffect* effect,
 {
     switch (srcPixelComponents) {
     case ePixelComponentAlpha:
-        convertForSrcNComps<SRCPIX, srcMaxValue, 1>(effect, srcPixelData, renderWindow, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
+        convertForSrcNComps<SRCPIX, srcMaxValue, 1>(effect, srcPixelData, renderWindow, renderScale, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
         break;
     case ePixelComponentXY:
-        convertForSrcNComps<SRCPIX, srcMaxValue, 2>(effect, srcPixelData, renderWindow, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
+        convertForSrcNComps<SRCPIX, srcMaxValue, 2>(effect, srcPixelData, renderWindow, renderScale, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
         break;
     case ePixelComponentRGB:
-        convertForSrcNComps<SRCPIX, srcMaxValue, 3>(effect, srcPixelData, renderWindow, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
+        convertForSrcNComps<SRCPIX, srcMaxValue, 3>(effect, srcPixelData, renderWindow, renderScale, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
         break;
     case ePixelComponentRGBA:
-        convertForSrcNComps<SRCPIX, srcMaxValue, 4>(effect, srcPixelData, renderWindow, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
+        convertForSrcNComps<SRCPIX, srcMaxValue, 4>(effect, srcPixelData, renderWindow, renderScale, srcBounds, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
         break;
     default:
         assert(false);
@@ -2826,6 +2833,7 @@ convertForDepth(ImageEffect* effect,
 void
 GenericReaderPlugin::convertDepthAndComponents(const void* srcPixelData,
                                                const OfxRectI& renderWindow,
+                                               const OfxPointD& renderScale,
                                                const OfxRectI& srcBounds,
                                                PixelComponentEnum srcPixelComponents,
                                                BitDepthEnum srcBitDepth,
@@ -2837,13 +2845,13 @@ GenericReaderPlugin::convertDepthAndComponents(const void* srcPixelData,
 {
     switch (srcBitDepth) {
     case eBitDepthFloat:
-        convertForDepth<float, 1>(this, (const float*)srcPixelData, renderWindow, srcBounds, srcPixelComponents, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
+        convertForDepth<float, 1>(this, (const float*)srcPixelData, renderWindow, renderScale, srcBounds, srcPixelComponents, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
         break;
     case eBitDepthUShort:
-        convertForDepth<unsigned short, 65535>(this, (const unsigned short*)srcPixelData, renderWindow, srcBounds, srcPixelComponents, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
+        convertForDepth<unsigned short, 65535>(this, (const unsigned short*)srcPixelData, renderWindow, renderScale, srcBounds, srcPixelComponents, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
         break;
     case eBitDepthUByte:
-        convertForDepth<unsigned char, 255>(this, (const unsigned char*)srcPixelData, renderWindow, srcBounds, srcPixelComponents, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
+        convertForDepth<unsigned char, 255>(this, (const unsigned char*)srcPixelData, renderWindow, renderScale, srcBounds, srcPixelComponents, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstRowBytes);
         break;
     default:
         assert(false);
