@@ -1,6 +1,12 @@
-openfx-io-natron (2.3.15~rc14+libs-1ppa1~focal) focal; urgency=low
+openfx-io-natron (2.3.15+libs-1~buster) Lumiera-buster-tool; urgency=low
 
-  * Rebuild for Ubuntu/Focal (20.04 LTS)
+  * Based on official Release 2.3.15
+  * Rebuild for Debian/Buster (unofficial package).
+
+ -- Hermann Vosseler <deb@ichthyostega.de>  Fri, 13 Nov 2020 23:05:18 +0100
+
+openfx-io-natron (2.3.15~rc14+libs-1~buster) Lumiera-buster-tool; urgency=low
+
   * New Upstream Release (actually RC14 for Natron 2.3.15).
   * packaged with git-buildpackage including git-submodules.
   * optimised release build (-O2)
