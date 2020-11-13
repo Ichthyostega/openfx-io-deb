@@ -3,7 +3,8 @@ Upstream-Name: openfx-io-natron
 Source: https://github.com/NatronGitHub/openfx-io/releases
 
 Files: *
-Copyright: (C) 2013-2017 INRIA
+Copyright: 2013-2018 INRIA
+           2018-2020 The Natron Developers
 License: GPL-2+
 
 Files: debian/*

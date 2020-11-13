@@ -28,10 +28,11 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Reader/Writer OpenFX plugin for Natron.
  This Reader/Writer node was written for Natron, but can also
  be used with other OpenFX hosts.
- * FFmpeg Reader/Writer
- * OpenImageIO
- * OpenColorIO
- * OpenEXR
- * libPNG
- * SeExpr expression language (https://github.com/wdas/SeExpr)
+ .
+  * FFmpeg Reader/Writer
+  * OpenImageIO
+  * OpenColorIO
+  * OpenEXR
+  * libPNG
+  * SeExpr expression language (https://github.com/wdas/SeExpr)
 
